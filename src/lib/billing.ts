@@ -5,7 +5,7 @@ import { creditBalance } from "./services/entitlements";
 export type Plan = {
   id: string; name: string; description: string; price_cents: number; currency: string;
   input_minutes: number; max_video_minutes: number; max_exports: number; watermark: number;
-  recurring_credits: number; max_width: number;
+  credits: number; recurring_credits: number; max_width: number;
   autofocus_level: "none" | "basic" | "tracking" | "group";
   subtitle_styles: number; animated_subtitles: number; custom_branding: number;
   multiple_users: number; batch_export: number; priority: number; auto_publish: number;
@@ -34,16 +34,44 @@ export function formatKz(cents: number): string {
   return `${formatted} Kz`;
 }
 
+const DEFAULT_PLANS: Plan[] = [
+  { id: "plan_free", name: "GRATUITO", description: "1 corte grátis, 9:16 até 720p, marca de água.", price_cents: 0, currency: "AOA", credits: 0, input_minutes: 10, max_video_minutes: 10, max_exports: 1, watermark: 1, recurring_credits: 0, max_width: 720, autofocus_level: "none", subtitle_styles: 1, animated_subtitles: 0, custom_branding: 0, multiple_users: 0, batch_export: 0, priority: 0, auto_publish: 0, is_active: 1, sort_order: 0 },
+  { id: "plan_creator", name: "CRIADOR", description: "30 cortes, vídeos até 30 min, HD e autofoco.", price_cents: 350000, currency: "AOA", credits: 0, input_minutes: 120, max_video_minutes: 30, max_exports: 30, watermark: 0, recurring_credits: 0, max_width: 1280, autofocus_level: "basic", subtitle_styles: 5, animated_subtitles: 0, custom_branding: 0, multiple_users: 0, batch_export: 0, priority: 0, auto_publish: 0, is_active: 1, sort_order: 1 },
+  { id: "plan_pro", name: "PROFISSIONAL", description: "100 cortes, até 90 min, Full HD e legendas animadas.", price_cents: 750000, currency: "AOA", credits: 0, input_minutes: 400, max_video_minutes: 90, max_exports: 100, watermark: 0, recurring_credits: 0, max_width: 1920, autofocus_level: "tracking", subtitle_styles: 5, animated_subtitles: 1, custom_branding: 1, multiple_users: 0, batch_export: 0, priority: 1, auto_publish: 1, is_active: 1, sort_order: 2 },
+  { id: "plan_agency", name: "AGÊNCIA", description: "300 cortes, até 3 h, marcas e exportação em lote.", price_cents: 1750000, currency: "AOA", credits: 0, input_minutes: 1200, max_video_minutes: 180, max_exports: 300, watermark: 0, recurring_credits: 0, max_width: 1920, autofocus_level: "group", subtitle_styles: 5, animated_subtitles: 1, custom_branding: 1, multiple_users: 1, batch_export: 1, priority: 2, auto_publish: 1, is_active: 1, sort_order: 3 },
+];
+
+const DEFAULT_PACKAGES: Package[] = [
+  { id: "pack_60", name: "60 minutos", minutes: 60, price_cents: 200000, currency: "AOA", is_active: 1, sort_order: 1 },
+  { id: "pack_150", name: "150 minutos", minutes: 150, price_cents: 450000, currency: "AOA", is_active: 1, sort_order: 2 },
+  { id: "pack_300", name: "300 minutos", minutes: 300, price_cents: 800000, currency: "AOA", is_active: 1, sort_order: 3 },
+  { id: "pack_600", name: "600 minutos", minutes: 600, price_cents: 1400000, currency: "AOA", is_active: 1, sort_order: 4 },
+];
+
 export function listPlans(): Plan[] {
-  return all<Plan>("SELECT * FROM plans WHERE is_active=1 ORDER BY sort_order");
+  try {
+    const rows = all<Plan>("SELECT * FROM plans WHERE is_active=1 ORDER BY sort_order");
+    return rows.length ? rows : DEFAULT_PLANS;
+  } catch {
+    return DEFAULT_PLANS;
+  }
 }
 
 export function listPackages(): Package[] {
-  return all<Package>("SELECT * FROM minute_packages WHERE is_active=1 ORDER BY sort_order");
+  try {
+    const rows = all<Package>("SELECT * FROM minute_packages WHERE is_active=1 ORDER BY sort_order");
+    return rows.length ? rows : DEFAULT_PACKAGES;
+  } catch {
+    return DEFAULT_PACKAGES;
+  }
 }
 
 export function getPlan(id: string): Plan | undefined {
-  return get<Plan>("SELECT * FROM plans WHERE id=?", id);
+  try {
+    return get<Plan>("SELECT * FROM plans WHERE id=?", id) ?? DEFAULT_PLANS.find((p) => p.id === id);
+  } catch {
+    return DEFAULT_PLANS.find((p) => p.id === id);
+  }
 }
 
 export function planForUser(userId: string): Plan {

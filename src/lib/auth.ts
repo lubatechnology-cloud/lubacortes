@@ -66,19 +66,23 @@ export async function clearSessionCookie() {
 }
 
 export async function currentUser(): Promise<User | null> {
-  const store = await cookies();
-  const token = store.get(SESSION_COOKIE)?.value;
-  if (!token) return null;
-  const row = get<{ user_id: string; expires_at: string; revoked_at: string | null }>(
-    "SELECT user_id, expires_at, revoked_at FROM sessions WHERE token_hash = ?",
-    hashToken(token),
-  );
-  if (!row || row.revoked_at || new Date(row.expires_at).getTime() < Date.now()) return null;
-  const user = get<User>(
-    "SELECT id, email, name, role, email_verified_at, is_active FROM users WHERE id = ? AND is_active = 1",
-    row.user_id,
-  );
-  return user ?? null;
+  try {
+    const store = await cookies();
+    const token = store.get(SESSION_COOKIE)?.value;
+    if (!token) return null;
+    const row = get<{ user_id: string; expires_at: string; revoked_at: string | null }>(
+      "SELECT user_id, expires_at, revoked_at FROM sessions WHERE token_hash = ?",
+      hashToken(token),
+    );
+    if (!row || row.revoked_at || new Date(row.expires_at).getTime() < Date.now()) return null;
+    const user = get<User>(
+      "SELECT id, email, name, role, email_verified_at, is_active FROM users WHERE id = ? AND is_active = 1",
+      row.user_id,
+    );
+    return user ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export async function requireUser(): Promise<User> {

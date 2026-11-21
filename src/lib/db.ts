@@ -171,11 +171,12 @@ export function run(sql: string, ...params: unknown[]): Database.RunResult {
 }
 
 export function setting<T>(key: string, fallback: T): T {
-  const row = get<{ value_json: string }>("SELECT value_json FROM settings WHERE key = ?", key);
-  if (!row) return fallback;
   try {
+    const row = get<{ value_json: string }>("SELECT value_json FROM settings WHERE key = ?", key);
+    if (!row) return fallback;
     return JSON.parse(row.value_json) as T;
   } catch {
+    // Base de dados indisponível (ex.: filesystem efémero em serverless).
     return fallback;
   }
 }
