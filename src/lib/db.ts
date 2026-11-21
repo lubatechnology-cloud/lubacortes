@@ -13,20 +13,27 @@ function usePostgres(): boolean {
 }
 
 const PG_BRIDGE = `
-const { Client } = require('pg');
 (async () => {
   let input = '';
   process.stdin.on('data', d => input += d);
   process.stdin.on('end', async () => {
     try {
-      const { url, sql, params } = JSON.parse(input);
-      let n = 0;
-      const pgSql = sql.replace(/\\?/g, () => '$' + (++n));
-      const c = new Client({ connectionString: url, ssl: { rejectUnauthorized: false } });
-      await c.connect();
-      const r = await c.query(pgSql, params);
-      await c.end();
-      process.stdout.write(JSON.stringify({ rows: r.rows, rowCount: r.rowCount || 0 }));
+      const { url, key, sql, params } = JSON.parse(input);
+      const lit = v => v === null || v === undefined ? 'NULL'
+        : typeof v === 'number' ? String(v)
+        : typeof v === 'boolean' ? (v ? 'true' : 'false')
+        : "'" + String(v).replace(/'/g, "''") + "'";
+      let i = 0;
+      const query = sql.replace(/\\?/g, () => lit(params[i++]));
+      const res = await fetch(String(url).replace(/\\/$/, '') + '/rest/v1/rpc/exec_sql', {
+        method: 'POST',
+        headers: { apikey: key, Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query })
+      });
+      const text = await res.text();
+      if (!res.ok) { process.stdout.write(JSON.stringify({ error: text.slice(0, 600) })); return; }
+      const rows = JSON.parse(text || '[]');
+      process.stdout.write(JSON.stringify({ rows, rowCount: rows.length || 1 }));
     } catch (e) {
       process.stdout.write(JSON.stringify({ error: String((e && e.message) || e) }));
     }
@@ -36,7 +43,12 @@ const { Client } = require('pg');
 
 function pgQuery<T>(sql: string, params: unknown[]): { rows: T[]; rowCount: number } {
   const raw = execFileSync(process.execPath, ["-e", PG_BRIDGE], {
-    input: JSON.stringify({ url: process.env.DATABASE_URL, sql, params }),
+    input: JSON.stringify({
+      url: process.env.SUPABASE_URL,
+      key: process.env.SUPABASE_SERVICE_ROLE_KEY,
+      sql,
+      params,
+    }),
     encoding: "utf8",
     maxBuffer: 16 * 1024 * 1024,
     timeout: 30_000,
