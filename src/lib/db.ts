@@ -1,11 +1,56 @@
 import fs from "node:fs";
 import path from "node:path";
+import { execFileSync } from "node:child_process";
 import Database from "better-sqlite3";
 import { config, DEFAULT_SETTINGS } from "./config";
 
 let instance: Database.Database | null = null;
+let pgStub: unknown = null;
+
+/** Em produção (Vercel) usamos o Postgres do Supabase; em dev, SQLite local. */
+function usePostgres(): boolean {
+  return Boolean(process.env.DATABASE_URL) && (process.env.VERCEL === "1" || process.env.NODE_ENV === "production");
+}
+
+const PG_BRIDGE = `
+const { Client } = require('pg');
+(async () => {
+  let input = '';
+  process.stdin.on('data', d => input += d);
+  process.stdin.on('end', async () => {
+    try {
+      const { url, sql, params } = JSON.parse(input);
+      let n = 0;
+      const pgSql = sql.replace(/\\?/g, () => '$' + (++n));
+      const c = new Client({ connectionString: url, ssl: { rejectUnauthorized: false } });
+      await c.connect();
+      const r = await c.query(pgSql, params);
+      await c.end();
+      process.stdout.write(JSON.stringify({ rows: r.rows, rowCount: r.rowCount || 0 }));
+    } catch (e) {
+      process.stdout.write(JSON.stringify({ error: String((e && e.message) || e) }));
+    }
+  });
+})();
+`;
+
+function pgQuery<T>(sql: string, params: unknown[]): { rows: T[]; rowCount: number } {
+  const raw = execFileSync(process.execPath, ["-e", PG_BRIDGE], {
+    input: JSON.stringify({ url: process.env.DATABASE_URL, sql, params }),
+    encoding: "utf8",
+    maxBuffer: 16 * 1024 * 1024,
+    timeout: 30_000,
+  });
+  const out = JSON.parse(raw) as { rows: T[]; rowCount: number; error?: string };
+  if (out.error) throw new Error(out.error);
+  return out;
+}
 
 export function getDb(): Database.Database {
+  if (usePostgres()) {
+    if (!pgStub) pgStub = { transaction: (fn: () => unknown) => () => fn() };
+    return pgStub as Database.Database;
+  }
   if (instance) return instance;
   fs.mkdirSync(path.dirname(config.databasePath), { recursive: true });
   const db = new Database(config.databasePath);
@@ -156,6 +201,7 @@ export function all<T = Record<string, unknown>>(
   sql: string,
   ...params: unknown[]
 ): T[] {
+  if (usePostgres()) return pgQuery<T>(sql, params).rows;
   return getDb().prepare(sql).all(...params) as T[];
 }
 
@@ -163,10 +209,15 @@ export function get<T = Record<string, unknown>>(
   sql: string,
   ...params: unknown[]
 ): T | undefined {
+  if (usePostgres()) return pgQuery<T>(sql, params).rows[0];
   return getDb().prepare(sql).get(...params) as T | undefined;
 }
 
 export function run(sql: string, ...params: unknown[]): Database.RunResult {
+  if (usePostgres()) {
+    const r = pgQuery<Record<string, unknown>>(sql, params);
+    return { changes: r.rowCount, lastInsertRowid: BigInt(0) };
+  }
   return getDb().prepare(sql).run(...params);
 }
 
