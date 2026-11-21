@@ -2,6 +2,7 @@ import Link from "next/link";
 import { currentUser } from "@/lib/auth";
 import { HeroForm } from "@/components/hero-form";
 import { EditorAnimation } from "@/components/editor-animation";
+import { SocialLogos } from "@/components/social-logos";
 import { Logo, ThemeToggle } from "@/components/ui";
 import { Scissors, Wand2, Captions, Crop, ShieldCheck, Zap, ArrowRight, Check } from "lucide-react";
 import { formatKz, listPackages, listPlans } from "@/lib/billing";
@@ -63,6 +64,7 @@ export default async function Home() {
           <span className="flex items-center gap-1.5"><Check size={14} className="text-emerald-400" /> Sem cartão de crédito</span>
           <span className="flex items-center gap-1.5"><Check size={14} className="text-emerald-400" /> Pagamentos em modo de teste</span>
         </div>
+        <div className="mt-6"><SocialLogos compact /></div>
       </section>
 
       <EditorAnimation />

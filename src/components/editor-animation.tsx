@@ -1,6 +1,7 @@
 "use client";
 
 import { Check, Sparkles, Scissors, Captions, Play } from "lucide-react";
+import { SocialLogos } from "@/components/social-logos";
 
 /** Ondas determinísticas — sem Math.random, para não quebrar a hidratação. */
 const WAVE = Array.from({ length: 118 }, (_, i) => {
@@ -157,6 +158,11 @@ export function EditorAnimation() {
             <span className="flex items-center gap-1.5"><Check size={13} className="text-emerald-500" /> 9:16, 16:9 e 1:1</span>
             <span className="flex items-center gap-1.5"><Check size={13} className="text-emerald-500" /> H.264 / MP4</span>
           </div>
+        </div>
+
+        <div className="mt-6 flex flex-col items-center gap-3">
+          <p className="text-xs font-semibold text-slate-500">Exportação optimizada para cada plataforma</p>
+          <SocialLogos />
         </div>
       </div>
     </section>
