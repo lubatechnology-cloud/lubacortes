@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["better-sqlite3", "ffmpeg-static", "ffprobe-static"],
+  serverExternalPackages: ["better-sqlite3", "ffmpeg-static", "ffprobe-static", "pg"],
 };
 
 export default nextConfig;
