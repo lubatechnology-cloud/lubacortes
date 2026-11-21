@@ -2,6 +2,7 @@ import Link from "next/link";
 import { currentUser } from "@/lib/auth";
 import { HeroForm } from "@/components/hero-form";
 import { ProductIllustration } from "@/components/product-illustration";
+import { EditorAnimation } from "@/components/editor-animation";
 import { Logo, ThemeToggle } from "@/components/ui";
 import { Scissors, Wand2, Captions, Crop, ShieldCheck, Zap, ArrowRight, Check } from "lucide-react";
 import { formatKz, listPackages, listPlans } from "@/lib/billing";
@@ -65,6 +66,7 @@ export default async function Home() {
         </div>
       </section>
 
+      <EditorAnimation />
       <ProductIllustration />
 
       <section id="funcionalidades" className="mx-auto max-w-7xl px-5 py-16">
