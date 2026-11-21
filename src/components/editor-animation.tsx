@@ -19,15 +19,15 @@ const REGIOES = [
 const CORTES = [
   {
     numero: 1, titulo: "O maior erro dos criadores", nota: 94, plataforma: "Shorts · 9:16",
-    legenda: "NINGUÉM TE CONTA ISSO", duracao: "0:44", destaque: true,
+    legenda: "NINGUÉM TE CONTA ISSO", duracao: "0:44", destaque: true, foto: "/hero1.jpg",
   },
   {
     numero: 2, titulo: "A primeira contratação", nota: 88, plataforma: "Reels · 9:16",
-    legenda: "CONTRATE POR ESTE MOTIVO", duracao: "0:38", destaque: false,
+    legenda: "CONTRATE POR ESTE MOTIVO", duracao: "0:38", destaque: false, foto: "/hero2.jpg",
   },
   {
     numero: 3, titulo: "O hábito de sexta-feira", nota: 83, plataforma: "TikTok · 9:16",
-    legenda: "FAZ ISTO TODA SEXTA", duracao: "0:51", destaque: false,
+    legenda: "FAZ ISTO TODA SEXTA", duracao: "0:51", destaque: false, foto: "/hero3.jpg",
   },
 ];
 
@@ -69,7 +69,7 @@ export function EditorAnimation() {
           <div className="grid gap-4 md:grid-cols-[220px_1fr]">
             <div className="relative h-36 overflow-hidden rounded-2xl bg-slate-900 md:h-full md:min-h-[150px]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/podcast-studio.jpg" alt="Entrevista em estúdio" className="h-full w-full object-cover" />
+              <img src="/hero0.jpg" alt="Criador a gravar em estúdio" className="h-full w-full object-cover" />
               <span className="absolute bottom-2 right-2 rounded-md bg-black/75 px-2 py-1 font-mono text-[10px] font-bold text-white">58:40</span>
               <span className="absolute left-2 top-2 grid h-6 w-6 place-items-center rounded-full bg-white/90 text-blue-700"><Play size={11} fill="currentColor" /></span>
             </div>
@@ -133,7 +133,7 @@ export function EditorAnimation() {
                 <div className="flex gap-3">
                   <div className="relative aspect-[9/14] w-[38%] shrink-0 overflow-hidden rounded-xl bg-slate-900">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/podcast-studio.jpg" alt="" className="h-full w-full object-cover" />
+                    <img src={c.foto} alt="" className="h-full w-full object-cover slide-foto" style={{ animationDelay: `${1.4 + i * 0.6}s` }} />
                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/70 to-transparent px-2 pb-3 pt-8">
                       <p className="text-[11px] font-black leading-tight text-white">{c.legenda}</p>
                     </div>
