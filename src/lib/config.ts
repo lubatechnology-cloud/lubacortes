@@ -30,7 +30,7 @@ export const config = {
   workerConcurrency: int("WORKER_CONCURRENCY", 1),
   renderTimeoutMs: int("RENDER_TIMEOUT_MS", 900000),
   watermarkFont: str("WATERMARK_FONT_PATH", "C:/Windows/Fonts/arial.ttf"),
-  allowedVideoHosts: str("ALLOWED_VIDEO_HOSTS", "localhost,127.0.0.1")
+  allowedVideoHosts: str("ALLOWED_VIDEO_HOSTS", "")
     .split(",")
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean),

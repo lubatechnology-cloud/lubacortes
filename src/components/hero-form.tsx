@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Sparkles, ArrowRight, Upload, Link2 } from "lucide-react";
 import { post } from "@/lib/client/api";
 import { Alert, Spinner } from "@/components/ui";
+import { isPlatformPage } from "@/lib/client/source-url";
 
 export function HeroForm({ authenticated }: { authenticated: boolean }) {
   const router = useRouter();
@@ -74,6 +75,15 @@ export function HeroForm({ authenticated }: { authenticated: boolean }) {
         </button>
       </form>
       {error && <div className="px-3 pb-3"><Alert tone="error">{error}</Alert></div>}
+      {mode === "url" && isPlatformPage(url) && (
+        <div className="px-3 pb-3">
+          <Alert>
+            Esse link é de uma plataforma que exige extracção/autenticação — não contornamos protecções.
+            Carregue o ficheiro ou use um <strong>URL directo</strong> para o vídeo (.mp4, .webm, .mov) do seu alojamento/CDN.
+            {" "}<button className="font-bold text-blue-500 underline" onClick={() => setMode("file")}>Carregar ficheiro</button>
+          </Alert>
+        </div>
+      )}
       <p className="px-3 pb-2 text-center text-[11px] muted">
         Apenas URLs directos de vídeo e ficheiros autorizados. Não contornamos protecções de plataformas externas.
         {!authenticated && <> <Link href="/login" className="text-blue-500 underline">Já tem conta?</Link></>}

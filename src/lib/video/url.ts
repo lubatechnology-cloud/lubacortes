@@ -49,7 +49,7 @@ export async function validateSourceUrl(raw: string): Promise<URL> {
   if (PLATFORM_DENYLIST.some((d) => root === d || root.endsWith("." + d))) {
     throw new ApiError(
       400,
-      "Esta plataforma exige extracção/autenticação. Não contornamos protecções: use o carregamento directo do ficheiro ou um URL directo de vídeo autorizado.",
+      "Este link é de uma plataforma que exige extracção/autenticação. Não contornamos protecções: carregue o ficheiro ou use um URL directo para o vídeo (.mp4, .webm, .mov) do seu próprio alojamento ou CDN.",
       "platform_not_supported",
     );
   }

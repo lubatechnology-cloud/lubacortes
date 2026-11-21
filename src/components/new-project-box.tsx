@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Sparkles, Link2, Upload } from "lucide-react";
 import { post } from "@/lib/client/api";
 import { Alert, Spinner } from "@/components/ui";
+import { isPlatformPage } from "@/lib/client/source-url";
 
 export function NewProjectBox() {
   const router = useRouter();
@@ -54,6 +55,14 @@ export function NewProjectBox() {
         <button className="btn-primary" disabled={loading}>{loading ? <Spinner /> : <Sparkles size={16} />} Importar vídeo</button>
       </form>
       {error && <div className="mt-3"><Alert tone="error">{error}</Alert></div>}
+      {mode === "url" && isPlatformPage(url) && (
+        <div className="mt-3">
+          <Alert>
+            Link de plataforma protegida: use o carregamento de ficheiro ou um URL directo (.mp4/.webm/.mov) do seu alojamento.
+            {" "}<button className="font-bold text-blue-500 underline" onClick={() => setMode("file")}>Carregar ficheiro</button>
+          </Alert>
+        </div>
+      )}
     </div>
   );
 }
