@@ -8,11 +8,17 @@ import { config } from "./config";
  * configurado. Em produção, substituir por Supabase/Resend/SMTP.
  */
 export function deliverToken(email: string, type: "verify" | "reset", token: string) {
-  const outbox = path.join(config.root, "data", "mail-outbox.log");
-  fs.mkdirSync(path.dirname(outbox), { recursive: true });
   const link = `${config.appUrl}/${type === "verify" ? "verificar-email" : "redefinir-senha"}?token=${token}`;
-  const line = `[${new Date().toISOString()}] ${type.toUpperCase()} ${email} -> ${link}\n`;
-  fs.appendFileSync(outbox, line, "utf8");
-  console.log(`[mail:teste] ${type} para ${email}: ${link}`);
+  // Em serverless o filesystem é só de leitura: não tentar escrever ficheiros.
+  if (process.env.VERCEL !== "1" && process.env.NODE_ENV !== "production") {
+    try {
+      const outbox = path.join(config.root, "data", "mail-outbox.log");
+      fs.mkdirSync(path.dirname(outbox), { recursive: true });
+      fs.appendFileSync(outbox, `[${new Date().toISOString()}] ${type.toUpperCase()} ${email} -> ${link}\n`, "utf8");
+    } catch {
+      /* ignorar falha de escrita local */
+    }
+  }
+  console.log(`[mail] ${type} para ${email}`);
   return link;
 }
