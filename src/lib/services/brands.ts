@@ -52,7 +52,7 @@ export function addMember(userId: string, brandId: string, email: string) {
   }
   const user = get<{ id: string }>("SELECT id FROM users WHERE email=?", email.toLowerCase());
   if (!user) throw new ApiError(404, "Utilizador não encontrado.", "user_not_found");
-  run("INSERT OR IGNORE INTO brand_members (id,brand_id,user_id,role,created_at) VALUES (?,?,?,'member',?)",
+  run("INSERT INTO brand_members (id,brand_id,user_id,role,created_at) VALUES (?,?,?,'member',?) ON CONFLICT(brand_id,user_id) DO NOTHING",
     uid("bmb_"), brandId, user.id, nowIso());
   return listBrandMembers(userId, brandId);
 }

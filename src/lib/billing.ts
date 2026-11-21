@@ -153,7 +153,7 @@ export function ensurePeriod(userId: string): { planId: string; periodStart: str
       planId, start, end, nowIso(), userId);
   }
   run(
-    "INSERT OR IGNORE INTO usage_periods (id,user_id,period_start,period_end,plan_id,created_at) VALUES (?,?,?,?,?,?)",
+    "INSERT INTO usage_periods (id,user_id,period_start,period_end,plan_id,created_at) VALUES (?,?,?,?,?,?) ON CONFLICT(user_id,period_start) DO NOTHING",
     uid("per_"), userId, start, end, planId, nowIso(),
   );
   return { planId, periodStart: start, periodEnd: end };
