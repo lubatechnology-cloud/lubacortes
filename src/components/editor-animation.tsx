@@ -18,16 +18,16 @@ const REGIOES = [
 
 const CORTES = [
   {
-    numero: 1, titulo: "O maior erro dos criadores", nota: 94, plataforma: "Shorts · 9:16",
-    legenda: "NINGUÉM TE CONTA ISSO", duracao: "0:44", destaque: true, foto: "/hero1.jpg",
+    numero: 1, titulo: "O melhor resumo para si", nota: 94, plataforma: "Shorts · 9:16",
+    legenda: "", duracao: "0:44", destaque: true, foto: "/hero1.png",
   },
   {
-    numero: 2, titulo: "A primeira contratação", nota: 88, plataforma: "Reels · 9:16",
-    legenda: "CONTRATE POR ESTE MOTIVO", duracao: "0:38", destaque: false, foto: "/hero2.jpg",
+    numero: 2, titulo: "Os momentos mais importantes", nota: 88, plataforma: "Reels · 9:16",
+    legenda: "", duracao: "0:38", destaque: false, foto: "/hero2.png",
   },
   {
-    numero: 3, titulo: "O hábito de sexta-feira", nota: 83, plataforma: "TikTok · 9:16",
-    legenda: "FAZ ISTO TODA SEXTA", duracao: "0:51", destaque: false, foto: "/hero3.jpg",
+    numero: 3, titulo: "Assista agora os melhores cortes", nota: 83, plataforma: "TikTok · 9:16",
+    legenda: "", duracao: "0:51", destaque: false, foto: "/hero3.png",
   },
 ];
 
@@ -124,19 +124,15 @@ export function EditorAnimation() {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3">
-            {CORTES.map((c, i) => (
+            {CORTES.map((c) => (
               <div
                 key={c.numero}
                 className={`clip-card rounded-2xl border p-2.5 ${c.destaque ? "border-indigo-400 bg-indigo-50/40 ring-2 ring-indigo-500/20" : "border-slate-200 bg-white"}`}
-                style={{ animationDelay: `${1.1 + i * 0.6}s` }}
               >
                 <div className="flex gap-3">
                   <div className="relative aspect-[9/14] w-[38%] shrink-0 overflow-hidden rounded-xl bg-slate-900">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={c.foto} alt="" className="h-full w-full object-cover slide-foto" style={{ animationDelay: `${1.4 + i * 0.6}s` }} />
-                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/70 to-transparent px-2 pb-3 pt-8">
-                      <p className="text-[11px] font-black leading-tight text-white">{c.legenda}</p>
-                    </div>
+                    <img src={c.foto} alt="" className="h-full w-full object-cover slide-foto" />
                     <span className="absolute bottom-1 right-1 rounded bg-black/70 px-1.5 py-0.5 font-mono text-[9px] text-white">{c.duracao}</span>
                   </div>
                   <div className="min-w-0 flex-1 pt-1">

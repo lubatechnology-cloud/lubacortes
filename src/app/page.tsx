@@ -67,6 +67,25 @@ export default async function Home() {
       </section>
 
       <EditorAnimation />
+
+      <section className="mx-auto max-w-6xl px-5 pb-6">
+        <div className="relative overflow-hidden rounded-[28px] border shadow-glow" style={{ borderColor: "var(--border)" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/promo-banner.png" alt="Transforme vídeos longos em cortes incríveis" className="h-[320px] w-full object-cover object-[center_30%] sm:h-[420px]" />
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/85 via-slate-950/35 to-transparent" />
+          <div className="absolute inset-0 flex items-center p-6 sm:p-10">
+            <div className="max-w-md">
+              <span className="badge border border-cyan-400/40 bg-cyan-400/15 text-cyan-200">CRIADO EM ANGOLA · PT-AO</span>
+              <p className="mt-4 text-2xl font-black leading-tight text-white sm:text-4xl">Cortes prontos em segundos, com legendas animadas e qualidade profissional.</p>
+              <p className="mt-3 text-sm text-slate-200">Rápido. Automático. Fácil de usar.</p>
+              <Link href={user ? "/dashboard" : "/registar?next=/dashboard"} className="btn-primary mt-6">
+                Começar agora <ArrowRight size={16} />
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <ProductIllustration />
 
       <section id="funcionalidades" className="mx-auto max-w-7xl px-5 py-16">
