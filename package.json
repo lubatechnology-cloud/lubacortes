@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "worker": "tsx worker/index.ts",
+    "worker:once": "tsx worker/once.ts",
     "dev:all": "concurrently -k -n web,worker -c blue,magenta \"next dev\" \"tsx watch worker/index.ts\"",
     "db:init": "tsx scripts/db-init.ts",
     "db:seed": "tsx scripts/db-seed.ts",
