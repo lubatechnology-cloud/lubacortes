@@ -5,6 +5,7 @@ import { runAnalyzeJob } from "../src/lib/services/analysis";
 import { runRenderJob } from "../src/lib/services/rendering";
 import { expireOldPayments } from "../src/lib/services/payments";
 import { processDuePublications } from "../src/lib/services/publications";
+import { notificarSePronto } from "../src/lib/services/notifications";
 
 const workerId = `gha_${process.pid}_${uid("")}`;
 const MAX_JOBS = Number(process.env.GHA_MAX_JOBS || 8);
@@ -32,6 +33,9 @@ async function main() {
     try {
       const result = await dispatch(job);
       complete(job.id, result);
+      if (job.project_id) {
+        try { await notificarSePronto(job.user_id, job.project_id); } catch { /* ignorar */ }
+      }
       console.log(`[gha-worker] ✔ ${job.id}`);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);

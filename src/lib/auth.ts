@@ -12,6 +12,9 @@ export type User = {
   role: "user" | "admin";
   email_verified_at: string | null;
   is_active: number;
+  phone: string | null;
+  notify_email: number;
+  notify_whatsapp: number;
 };
 
 export function hashPassword(password: string): string {
@@ -76,7 +79,7 @@ export async function currentUser(): Promise<User | null> {
     );
     if (!row || row.revoked_at || new Date(row.expires_at).getTime() < Date.now()) return null;
     const user = get<User>(
-      "SELECT id, email, name, role, email_verified_at, is_active FROM users WHERE id = ? AND is_active = 1",
+      "SELECT id, email, name, role, email_verified_at, is_active, phone, notify_email, notify_whatsapp FROM users WHERE id = ? AND is_active = 1",
       row.user_id,
     );
     return user ?? null;

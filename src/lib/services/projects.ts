@@ -160,7 +160,7 @@ export function startAnalysis(
 ) {
   const project = getProject(userId, projectId);
   if (!project) throw new ApiError(404, "Projecto não encontrado.", "not_found");
-  if (!project.storage_path) throw new ApiError(409, "O vídeo ainda não foi importado.", "not_imported");
+  if (!project.storage_path && !project.remote_path) throw new ApiError(409, "O vídeo ainda não foi importado.", "not_imported");
   run("UPDATE projects SET status='analyzing', error=NULL, updated_at=? WHERE id=?", nowIso(), projectId);
   const jobId = enqueue(
     "analyze",

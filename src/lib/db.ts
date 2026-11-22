@@ -112,6 +112,10 @@ function migrate(db: Database.Database) {
   addColumnIfMissing(db, "payments", "kind", "TEXT NOT NULL DEFAULT 'credits'");
   addColumnIfMissing(db, "payments", "reference_id", "TEXT");
   addColumnIfMissing(db, "payments", "period_months", "INTEGER NOT NULL DEFAULT 1");
+  addColumnIfMissing(db, "users", "phone", "TEXT");
+  addColumnIfMissing(db, "users", "notify_email", "INTEGER NOT NULL DEFAULT 1");
+  addColumnIfMissing(db, "users", "notify_whatsapp", "INTEGER NOT NULL DEFAULT 0");
+  addColumnIfMissing(db, "projects", "notified_at", "TEXT");
   addColumnIfMissing(db, "projects", "remote_path", "TEXT");
   addColumnIfMissing(db, "clips", "remote_path", "TEXT");
   addColumnIfMissing(db, "clips", "thumb_remote_path", "TEXT");

@@ -65,6 +65,21 @@ export function ProjectWorkspace({ initial }: { initial: Detail }) {
 
   const processing = data.project.status === "importing" || data.project.status === "analyzing" ||
     data.clips.some((c) => c.status === "queued" || c.status === "rendering");
+  const [liveProgress, setLiveProgress] = useState<number | null>(null);
+  const jobAtivo = data.jobs.find((j) => ["queued", "running"].includes(j.status));
+
+  useEffect(() => {
+    if (!jobAtivo) return;
+    const es = new EventSource(`/api/jobs/${jobAtivo.id}/events`);
+    es.onmessage = (e) => {
+      try {
+        const ev = JSON.parse(e.data) as { progress: number; terminal: boolean };
+        setLiveProgress(ev.progress);
+        if (ev.terminal) { es.close(); load().catch(() => {}); }
+      } catch { /* ignorar */ }
+    };
+    return () => es.close();
+  }, [jobAtivo?.id, load]);
 
   useEffect(() => {
     if (!processing) return;
@@ -230,14 +245,15 @@ export function ProjectWorkspace({ initial }: { initial: Detail }) {
             <div><h2 className="font-bold">A processar o seu vídeo</h2>
               <p className="text-xs muted">{stageMap[analyzeJob?.stage ?? ""] ?? (data.clips.some((c) => c.status === "rendering") ? "A renderizar cortes" : "A preparar a análise")}</p>
             </div>
-            <span className="ml-auto text-sm font-bold text-blue-500">{analyzeJob?.progress ?? 0}%</span>
+            <span className="ml-auto text-sm font-bold text-blue-500">{liveProgress ?? analyzeJob?.progress ?? 0}%</span>
           </div>
-          <Progress value={analyzeJob?.progress ?? 0} />
+          <Progress value={liveProgress ?? analyzeJob?.progress ?? 0} />
           <div className="mt-4 grid gap-2 text-[11px] muted sm:grid-cols-5">
             {["Análise", "Transcrição", "Detecção de momentos", "Tradução", "Renderização"].map((s, i) => (
-              <div key={s} className={`rounded-lg border px-2 py-2 text-center ${(analyzeJob?.progress ?? 0) > i * 20 ? "border-blue-500/40 text-blue-500" : ""}`} style={{ borderColor: "var(--border)" }}>{s}</div>
+              <div key={s} className={`rounded-lg border px-2 py-2 text-center ${(liveProgress ?? analyzeJob?.progress ?? 0) > i * 20 ? "border-blue-500/40 text-blue-500" : ""}`} style={{ borderColor: "var(--border)" }}>{s}</div>
             ))}
           </div>
+          <p className="mt-3 text-xs muted">Pode sair desta página — o processamento continua em segundo plano e avisamos quando estiver pronto.</p>
           {analyzeJob?.error && <div className="mt-4"><Alert tone="error">{analyzeJob.error}</Alert></div>}
         </div>
       )}

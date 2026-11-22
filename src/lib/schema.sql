@@ -15,6 +15,9 @@ CREATE TABLE IF NOT EXISTS users (
   role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user','admin')),
   email_verified_at TEXT,
   is_active INTEGER NOT NULL DEFAULT 1,
+  phone TEXT,
+  notify_email INTEGER NOT NULL DEFAULT 1,
+  notify_whatsapp INTEGER NOT NULL DEFAULT 0,
   failed_logins INTEGER NOT NULL DEFAULT 0,
   locked_until TEXT,
   plan_id TEXT NOT NULL DEFAULT 'plan_free',
@@ -61,6 +64,7 @@ CREATE TABLE IF NOT EXISTS projects (
   width INTEGER,
   height INTEGER,
   detected_language TEXT,
+  notified_at TEXT,
   status TEXT NOT NULL DEFAULT 'created'
     CHECK (status IN ('created','importing','analyzing','ready','failed')),
   error TEXT,

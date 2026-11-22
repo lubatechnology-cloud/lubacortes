@@ -5,6 +5,7 @@ import { runAnalyzeJob } from "../src/lib/services/analysis";
 import { runRenderJob } from "../src/lib/services/rendering";
 import { expireOldPayments } from "../src/lib/services/payments";
 import { processDuePublications } from "../src/lib/services/publications";
+import { notificarSePronto } from "../src/lib/services/notifications";
 
 const workerId = `worker_${process.pid}_${uid("")}`;
 let running = true;
@@ -47,6 +48,12 @@ async function main() {
       try {
         const result = await dispatch(job);
         complete(job.id, result);
+        if (job.project_id) {
+          try {
+            const r = await notificarSePronto(job.user_id, job.project_id);
+            if (r.enviado) console.log(`[worker] notificação enviada: ${r.canais?.join(", ")}`);
+          } catch (e) { console.error("[worker] notificação falhou:", (e as Error).message); }
+        }
         console.log(`[worker] ✔ ${job.id}`);
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
