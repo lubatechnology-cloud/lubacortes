@@ -84,6 +84,13 @@ Pacotes adicionais: 60 min (2.000 Kz), 150 min (4.500 Kz), 300 min (8.000 Kz), 6
 | `npm run build` | Build de produção |
 | `npm run db:init` / `db:seed` | Base de dados e administrador |
 
+## Monitorização e modelos próprios
+- Métricas Prometheus em `/api/metrics` (protegidas por `METRICS_TOKEN`).
+- Grafana/Prometheus: `docker compose -f docker-compose.monitoring.yml up -d`. Ver `docs/MONITORING.md`.
+- Sentry opcional via `SENTRY_DSN`.
+- Adaptadores self-hosted (WhisperX, vLLM, DeepFace): ver `docs/SELF-HOSTED.md`.
+- Testes E2E: `npm run test:e2e` (usa Chrome instalado; `E2E_BASE_URL` para outro destino).
+
 ## Deploy na Vercel
 
 A configuração está preparada mas **não foi publicada**: o deploy completo exige

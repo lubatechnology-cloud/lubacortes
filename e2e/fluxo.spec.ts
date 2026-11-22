@@ -13,7 +13,10 @@ test("página inicial mostra planos, logótipos e animação", async ({ page }) 
 test("link do YouTube é reconhecido mas não processado", async ({ page }) => {
   await page.goto("/", { waitUntil: "domcontentloaded", timeout: 60_000 });
   const input = page.getByPlaceholder("Coloque o URL do seu vídeo");
+  await expect(input).toBeEditable();
+  await page.waitForTimeout(1500); // aguardar hidratação do React
   await input.fill("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+  await expect(input).toHaveValue("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
   const botao = page.getByRole("button", { name: /Analisar vídeo|Começar grátis/ });
   await expect(botao).toBeDisabled({ timeout: 20_000 });
   await expect(page.locator("body")).toContainText(/plataforma que exige extracção|Encontrámos o vídeo/);
