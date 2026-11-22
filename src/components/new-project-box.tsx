@@ -107,9 +107,18 @@ export function NewProjectBox() {
           ) : <div className="h-14 w-24 shrink-0 animate-pulse rounded-lg bg-slate-300/30" />}
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-bold">{yt?.titulo ?? "A identificar vídeo…"}</p>
-            <p className="text-[11px] muted">{yt?.autor ?? "YouTube"} · carregue o ficheiro para processar</p>
+            <p className="text-[11px] muted">{yt?.autor ?? "YouTube"} · processar com licença própria</p>
           </div>
-          <button className="btn-primary shrink-0 !px-3 !py-2 !text-xs" onClick={() => setMode("file")}>Carregar ficheiro</button>
+          <div className="flex shrink-0 flex-col gap-2">
+            <button className="btn-primary !px-3 !py-2 !text-xs" onClick={async () => {
+              setLoading(true); setError("");
+              try {
+                const r = await post<{ project: { id: string } }>("/api/sources/youtube/import", { url });
+                router.push(`/projecto/${r.project.id}`);
+              } catch (e) { setError((e as Error).message); } finally { setLoading(false); }
+            }} disabled={loading}>Cortar este vídeo</button>
+            <button className="btn-ghost !px-3 !py-1 !text-[10px]" onClick={() => setMode("file")}>Carregar ficheiro</button>
+          </div>
         </div>
       )}
       {mode === "url" && isPlatformPage(url) && !isYoutubeUrl(url) && (

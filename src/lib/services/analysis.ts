@@ -9,7 +9,8 @@ import { detectMoments } from "../ai/moments";
 import { DEFAULT_SUBTITLE_STYLE, type SubtitleStyle } from "../video/subtitles";
 import { setting } from "../db";
 import { suggestions } from "../video/formats";
-import { featuresForUser, recordCost, reserveExports } from "../billing";
+import { chargeInputMinutes, featuresForUser, recordCost, reserveExports } from "../billing";
+import { baixarYouTube } from "../video/youtube-download";
 import type { Job } from "../queue";
 import type { Project } from "./projects";
 
@@ -26,6 +27,7 @@ export async function runAnalyzeJob(job: Job) {
     stylePreset?: string;
     liveUrl?: string;
     captureSeconds?: number;
+    youtubeUrl?: string;
   };
   const project = get<Project>("SELECT * FROM projects WHERE id=? AND user_id=?", payload.projectId, job.user_id);
   if (!project) throw new Error("Projecto não encontrado.");
@@ -36,6 +38,21 @@ export async function runAnalyzeJob(job: Job) {
     project.storage_path = rel;
   }
   if (!project.storage_path) throw new Error("Projecto ou ficheiro de origem não encontrado.");
+
+  if (payload.youtubeUrl) {
+    progress(job.id, 2, "a_descarregar_youtube");
+    const yt = await baixarYouTube(payload.youtubeUrl, project.user_id, project.id);
+    const thumb = `projects/${project.user_id}/${project.id}/thumb.jpg`;
+    try { await extractThumbnail(storagePath(yt.caminhoLocal), storagePath(thumb), 1); } catch { /* opcional */ }
+    run(
+      "UPDATE projects SET storage_path=?, remote_path=?, title=?, duration=?, thumbnail_path=?, status='analyzing', updated_at=? WHERE id=?",
+      yt.caminhoLocal, yt.caminhoRemoto, yt.titulo, yt.duracao, thumb, nowIso(), project.id,
+    );
+    project.storage_path = yt.caminhoLocal;
+    project.remote_path = yt.caminhoRemoto;
+    project.duration = yt.duracao;
+    chargeInputMinutes(job.user_id, yt.duracao, project.id, yt.titulo);
+  }
 
   if (payload.liveUrl) {
     progress(job.id, 3, "a_capturar_live");
