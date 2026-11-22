@@ -23,7 +23,9 @@ export async function criarUrlUpload(caminho: string): Promise<string> {
   if (!res.ok) throw new Error(`Falha ao criar upload (${res.status}): ${(await res.text()).slice(0, 200)}`);
   const data = (await res.json()) as { url?: string; token?: string };
   if (!data.url) throw new Error("O Storage não devolveu URL de upload.");
-  return data.url.startsWith("http") ? data.url : `${c.url}${data.url}`;
+  if (data.url.startsWith("http")) return data.url;
+  const rel = data.url.startsWith("/") ? data.url : `/${data.url}`;
+  return rel.startsWith("/storage/v1") ? `${c.url}${rel}` : `${c.url}/storage/v1${rel}`;
 }
 
 /** Envia um buffer para o bucket (servidor/worker). */
