@@ -1,6 +1,7 @@
 import { all, get, nowIso, run, uid } from "../db";
 import { enqueue, progress } from "../queue";
 import { storagePath } from "../storage";
+import { ensureLocalSource } from "./source";
 import { detectScenes, detectSilences, extractAudio, probe } from "../video/ffmpeg";
 import { getTranscriptionProvider } from "../ai/transcribe";
 import { detectMoments } from "../ai/moments";
@@ -25,7 +26,7 @@ export async function runAnalyzeJob(job: Job) {
   };
   const project = get<Project>("SELECT * FROM projects WHERE id=? AND user_id=?", payload.projectId, job.user_id);
   if (!project?.storage_path) throw new Error("Projecto ou ficheiro de origem não encontrado.");
-  const video = storagePath(project.storage_path);
+  const video = await ensureLocalSource(project);
   const workDir = `projects/${project.user_id}/${project.id}`;
 
   progress(job.id, 8, "a_ler_metadados");
