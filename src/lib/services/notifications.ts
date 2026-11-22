@@ -58,6 +58,6 @@ export async function notificarSePronto(userId: string, projectId: string) {
     } catch (e) { console.error("[notify] whatsapp falhou:", (e as Error).message); }
   }
 
-  run("UPDATE projects SET notified_at=? WHERE id=?", nowIso(), projectId);
+  if (resultados.length > 0) run("UPDATE projects SET notified_at=? WHERE id=?", nowIso(), projectId);
   return { enviado: resultados.length > 0, canais: resultados };
 }
