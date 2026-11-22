@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api, del, put } from "@/lib/client/api";
+import { api, del, patch } from "@/lib/client/api";
 import { Alert, Spinner } from "@/components/ui";
 import { UserRound, ShieldCheck, Monitor } from "lucide-react";
 
@@ -32,7 +32,7 @@ export default function SettingsPage() {
 
   async function save() {
     setBusy(true); setError(""); setMsg("");
-    try { await put("/api/profile", { name, phone, notifyEmail, notifyWhatsapp }); setMsg("Perfil e notificações actualizados."); }
+    try { await patch("/api/profile", { name, phone, notifyEmail, notifyWhatsapp }); setMsg("Perfil e notificações actualizados."); }
     catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   }
   async function revoke(id: string) {
