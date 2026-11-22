@@ -6,6 +6,7 @@ import { runRenderJob } from "../src/lib/services/rendering";
 import { expireOldPayments } from "../src/lib/services/payments";
 import { processDuePublications } from "../src/lib/services/publications";
 import { notificarSePronto } from "../src/lib/services/notifications";
+import { capturarErro, iniciarSentry } from "../src/lib/sentry";
 
 const workerId = `worker_${process.pid}_${uid("")}`;
 let running = true;
@@ -26,6 +27,7 @@ async function dispatch(job: Job) {
 }
 
 async function main() {
+  iniciarSentry();
   getDb(); // inicializa esquema
   const recovered = recoverStaleJobs(workerId);
   console.log(`[worker] ${workerId} iniciado. ${recovered} tarefa(s) recuperadas.`);
@@ -58,6 +60,7 @@ async function main() {
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         console.error(`[worker] ✘ ${job.id}: ${message}`);
+      capturarErro(err);
         progress(job.id, 0, "erro");
         failJob(job.id, message, job.project_id, job.user_id);
       } finally {

@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { config } from "../config";
 import { probe, runFfmpeg } from "../video/ffmpeg";
+import { transcreverSelfHost } from "./selfhost";
 
 export type Segment = { start: number; end: number; text: string };
 
@@ -154,6 +155,13 @@ class GroqProvider implements TranscriptionProvider {
   }
 }
 
+class SelfHostProvider implements TranscriptionProvider {
+  name = "selfhost";
+  async transcribe(audioPath: string): Promise<TranscriptionResult> {
+    return transcreverSelfHost(audioPath);
+  }
+}
+
 class LocalWhisperProvider implements TranscriptionProvider {
   name = "local";
   private pipelinePromise: Promise<any> | null = null;
@@ -207,6 +215,8 @@ export function getTranscriptionProvider(): TranscriptionProvider {
       return new GroqProvider();
     case "openai":
       return new OpenAIProvider();
+    case "selfhost":
+      return new SelfHostProvider();
     case "local":
       return new LocalWhisperProvider();
     default:

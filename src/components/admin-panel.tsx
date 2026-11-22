@@ -119,11 +119,17 @@ export function AdminPanel() {
             </div>
             <div className="card p-5">
               <h2 className="mb-3 font-bold">Custo por serviço</h2>
-              {data.finance.byService.length === 0 ? <p className="text-sm muted">Sem custos registados.</p> : data.finance.byService.map((r, i) => (
-                <div key={i} className="flex justify-between rounded-lg px-3 py-2 text-xs" style={{ background: "var(--surface-2)" }}>
-                  <span>{String(r.service)} · {String(r.operation)}</span><span>{formatKz(Number(r.cost))} · {String(r.units)} un.</span>
-                </div>
-              ))}
+              {data.finance.byService.length === 0 ? <p className="text-sm muted">Sem custos registados.</p> : (() => {
+                const max = Math.max(1, ...data.finance.byService.map((r) => Number(r.cost)));
+                return data.finance.byService.map((r, i) => (
+                  <div key={i} className="mb-2">
+                    <div className="flex justify-between text-xs"><span>{String(r.service)} · {String(r.operation)}</span><span>{formatKz(Number(r.cost))}</span></div>
+                    <div className="mt-1 h-2 overflow-hidden rounded-full" style={{ background: "var(--surface-2)" }}>
+                      <div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-400" style={{ width: `${Math.round(Number(r.cost) / max * 100)}%` }} />
+                    </div>
+                  </div>
+                ));
+              })()}
             </div>
           </div>
           <div className="card overflow-x-auto p-5">

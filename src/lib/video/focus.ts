@@ -3,6 +3,7 @@ import path from "node:path";
 import { config } from "../config";
 import { ffmpegBin } from "./ffmpeg";
 import { spawn } from "node:child_process";
+import { detectarRostoSelfHost } from "../ai/selfhost";
 import type { FocusSample } from "./render";
 
 export type FocusResult = { samples: FocusSample[]; provider: string; warning?: string };
@@ -40,7 +41,7 @@ export async function planFocus(opts: {
   end: number;
   workDir: string;
   manual?: { x: number; y: number };
-  mode?: "center" | "model" | "manual";
+  mode?: "center" | "model" | "manual" | "selfhost";
   group?: boolean;
 }): Promise<FocusResult> {
   const { start, end } = opts;
@@ -61,6 +62,22 @@ export async function planFocus(opts: {
       provider: "manual",
     };
   }
+  if (mode === "selfhost") {
+    try {
+      fs.mkdirSync(opts.workDir, { recursive: true });
+      const frame = path.join(opts.workDir, "selfhost_frame.jpg");
+      await extractFrame(opts.video, frame, (start + end) / 2);
+      const ponto = await detectarRostoSelfHost(fs.readFileSync(frame).toString("base64"));
+      fs.rmSync(frame, { force: true });
+      if (ponto) {
+        return { samples: [{ t: start, ...ponto }, { t: end, ...ponto }], provider: "selfhost" };
+      }
+      return { samples: centerSamples(start, end), provider: "selfhost", warning: "DeepFace não encontrou rosto; aplicado centro." };
+    } catch (e) {
+      return { samples: centerSamples(start, end), provider: "selfhost", warning: `DeepFace indisponível: ${(e as Error).message.slice(0, 120)}` };
+    }
+  }
+
   if (mode !== "model") {
     return { samples: centerSamples(start, end), provider: mode === "manual" ? "manual" : "center" };
   }

@@ -35,7 +35,7 @@ export const config = {
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean),
   transcription: {
-    provider: str("TRANSCRIPTION_PROVIDER", "none") as "none" | "local" | "openai" | "groq",
+    provider: str("TRANSCRIPTION_PROVIDER", "none") as "none" | "local" | "openai" | "groq" | "selfhost",
     openaiKey: str("OPENAI_API_KEY"),
     openaiModel: str("OPENAI_TRANSCRIBE_MODEL", "whisper-1"),
     localModel: str("LOCAL_WHISPER_MODEL", "Xenova/whisper-tiny"),
@@ -48,7 +48,7 @@ export const config = {
     chunkSeconds: int("TRANSCRIBE_CHUNK_SECONDS", 600),
   },
   translation: {
-    provider: str("TRANSLATION_PROVIDER", "none") as "none" | "openai" | "libretranslate" | "groq",
+    provider: str("TRANSLATION_PROVIDER", "none") as "none" | "openai" | "libretranslate" | "groq" | "selfhost",
     libretranslateUrl: str("LIBRETRANSLATE_URL"),
     libretranslateKey: str("LIBRETRANSLATE_API_KEY"),
     groqKey: str("GROQ_API_KEY"),
@@ -61,7 +61,7 @@ export const config = {
     maxClips: int("AI_MAX_CLIPS", 12),
   },
   autofocus: {
-    provider: str("AUTOFOCUS_PROVIDER", "none") as "none" | "model" | "manual",
+    provider: str("AUTOFOCUS_PROVIDER", "none") as "none" | "model" | "manual" | "selfhost",
     model: str("AUTOFOCUS_MODEL", "AdamCodd/YOLOv11n-face-detection"),
     intervalSeconds: int("AUTOFOCUS_INTERVAL_SECONDS", 2),
   },

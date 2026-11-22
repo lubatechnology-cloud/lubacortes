@@ -1,0 +1,6 @@
+{"version":10,"type":"context-options","origin":"library","browserName":"chromium","playwrightVersion":"1.65.1","options":{"baseURL":"https://lubacortes.vercel.app","viewport":{"width":1280,"height":900},"isMobile":false},"platform":"win32","wallTime":1795363973360,"monotonicTime":67089.024,"sdkLanguage":"javascript","testIdAttributeName":"data-testid","channel":"chrome","title":"fluxo.spec.ts:22 › registo, dashboard e preferências de notificação"}
+{"type":"before","callId":"vcre@46","startTime":67101.562,"class":"BrowserContext","method":"newPage","params":{}}
+{"type":"event","time":68991.23,"class":"BrowserContext","method":"page","params":{"pageId":"page@9db6914ab28fbe8b9fdce488dc092b7f"}}
+{"type":"after","callId":"vcre@46","endTime":68991.339,"result":{"page":"<Page>"}}
+{"type":"before","callId":"vcre@48","startTime":69003.136,"class":"Frame","method":"goto","params":{"url":"/registar","waitUntil":"domcontentloaded","timeout":60000}}
+{"type":"frame-snapshot","snapshot":{"callId":"vcre@48","phase":"before","pageId":"page@9db6914ab28fbe8b9fdce488dc092b7f","frameId":"frame@e4b5249933287d5019a30b86d677a2bd","frameUrl":"about:blank","html":["HTML",{},["HEAD",{},["BASE",{"href":"about:blank"}]],["BODY"]],"viewport":{"width":1280,"height":900},"timestamp":69056.616,"wallTime":1795363975317,"collectionTime":5.5,"resourceOverrides":[],"isMainFrame":true}}

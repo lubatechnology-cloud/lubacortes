@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
+import { capturarErro } from "./sentry";
 
 export class ApiError extends Error {
   constructor(
@@ -48,6 +49,7 @@ export function fail(error: unknown) {
     );
   }
   console.error("[api] erro não tratado:", error);
+  capturarErro(error);
   return NextResponse.json(
     { ok: false, error: { code: "internal", message: "Ocorreu um erro interno." } },
     { status: 500 },

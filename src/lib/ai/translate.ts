@@ -1,4 +1,5 @@
 import { config } from "../config";
+import { traduzirSelfHost } from "./selfhost";
 
 export type SubtitleLanguage = {
   code: string;
@@ -143,6 +144,11 @@ export function getTranslationProvider(): TranslationProvider {
   switch (config.translation.provider) {
     case "groq":
       return new GroqTranslation();
+    case "selfhost":
+      return {
+        name: "selfhost",
+        translate: async (texto, destino, origem) => traduzirSelfHost(texto, destino, origem),
+      };
     case "openai":
       return new OpenAITranslation();
     case "libretranslate":
