@@ -79,7 +79,13 @@ export async function runAnalyzeJob(job: Job) {
     maxClips,
   });
 
-  if (!moments.length) throw new Error("Não foi possível identificar momentos com os sinais disponíveis.");
+  if (!moments.length) {
+    throw new Error(
+      segments.length === 0
+        ? "Não foi possível identificar momentos: não detetámos fala neste vídeo. Use um vídeo com áudio falado."
+        : "Não foi possível identificar momentos relevantes neste vídeo com os sinais disponíveis.",
+    );
+  }
 
   recordCost({ userId: job.user_id, projectId: project.id, jobId: job.id, service: "ai", operation: "moment_detection", units: Number((meta.duration / 60).toFixed(2)) });
   if (meta.hasAudio) recordCost({ userId: job.user_id, projectId: project.id, jobId: job.id, service: "ai", operation: "transcription", units: Number((meta.duration / 60).toFixed(2)) });

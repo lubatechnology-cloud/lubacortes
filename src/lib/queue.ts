@@ -119,6 +119,9 @@ export function failJob(jobId: string, error: string, projectId?: string | null,
       now,
       jobId,
     );
+    if (job.type === "analyze" && job.project_id) {
+      run("UPDATE projects SET status='failed', error=?, updated_at=? WHERE id=?", error.slice(0, 4000), now, job.project_id);
+    }
     if (job.type === "render") {
       const payload = JSON.parse(job.payload_json || "{}") as { clipId?: string };
       if (payload.clipId) {
