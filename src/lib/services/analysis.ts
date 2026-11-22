@@ -50,7 +50,8 @@ export async function runAnalyzeJob(job: Job) {
     project.storage_path = yt.caminhoLocal;
     project.remote_path = yt.caminhoRemoto;
     project.duration = yt.duracao;
-    chargeInputMinutes(job.user_id, yt.duracao, project.id, yt.titulo);
+    const jaCobrado = get("SELECT 1 AS x FROM minute_ledger WHERE user_id=? AND reference_id=?", job.user_id, project.id);
+    if (!jaCobrado) chargeInputMinutes(job.user_id, yt.duracao, project.id, yt.titulo);
   }
 
   if (payload.liveUrl) {

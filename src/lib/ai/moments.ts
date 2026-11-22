@@ -156,7 +156,7 @@ export function detectMoments(input: MomentInput): Moment[] {
     const units: { start: number; end: number; text: string }[] = [];
     for (const s of segs) {
       const last = units[units.length - 1];
-      if (last && (last.end - last.start < 2.2 || !endsWithSentence(last.text))) {
+      if (last && (last.end - last.start < 2.2 || !endsWithSentence(last.text)) && (s.end - last.start <= max)) {
         last.end = s.end;
         last.text = `${last.text} ${s.text}`;
       } else {
