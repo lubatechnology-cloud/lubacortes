@@ -16,6 +16,8 @@ npm-debug.log*
 .DS_Store
 coverage/
 .vitest/
+test-results/
+playwright-report/
 *.tsbuildinfo
 next-env.d.ts
 
