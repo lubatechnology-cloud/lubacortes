@@ -16,6 +16,7 @@ export type Project = {
   source_type: string;
   source_url: string | null;
   storage_path: string | null;
+  remote_path: string | null;
   thumbnail_path: string | null;
   duration: number | null;
   width: number | null;
@@ -101,6 +102,24 @@ async function finalizeImport(id: string, userId: string, rel: string): Promise<
     rel, thumbRel, meta.duration, meta.width, meta.height, now, id,
   );
   return getProject(userId, id)!;
+}
+
+/** Projecto criado a partir de um ficheiro já enviado directamente para o Storage. */
+export function createProjectFromRemote(userId: string, remotePath: string, fileName: string, size: number) {
+  const id = uid("prj_");
+  const now = nowIso();
+  run(
+    "INSERT INTO projects (id,user_id,title,source_type,remote_path,status,created_at,updated_at) VALUES (?,?,?,'upload',?,'importing',?,?)",
+    id, userId, fileName.replace(/\.[^.]+$/, "").slice(0, 120), remotePath, now, now,
+  );
+  // reserva os minutos pela duração estimada; o worker ajusta depois com a duração real
+  chargeInputMinutes(userId, Math.max(1, Math.round(size / 1024 / 1024 * 6)), id, fileName);
+  const jobId = enqueue(
+    "analyze",
+    { projectId: id, subtitleLang: "pt", formatId: "reels", style: {} },
+    userId, id, featuresForUser(userId).priority,
+  );
+  return { project: getProject(userId, id)!, jobId };
 }
 
 /** Capta um trecho de uma live HLS autorizada e cria o projecto para análise. */

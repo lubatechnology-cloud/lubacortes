@@ -7,6 +7,7 @@ import { Sparkles, ArrowRight, Upload, Link2 } from "lucide-react";
 import { post } from "@/lib/client/api";
 import { Alert, Spinner } from "@/components/ui";
 import { isPlatformPage, isYoutubeUrl } from "@/lib/client/source-url";
+import { uploadDirecto } from "@/lib/client/upload";
 
 export function HeroForm({ authenticated }: { authenticated: boolean }) {
   const router = useRouter();
@@ -44,12 +45,10 @@ export function HeroForm({ authenticated }: { authenticated: boolean }) {
     try {
       let data: { project: { id: string } };
       if (mode === "file") {
-        const fd = new FormData();
-        fd.append("file", file!);
-        const res = await fetch("/api/projects", { method: "POST", body: fd });
-        const json = await res.json();
-        if (!res.ok || !json.ok) throw new Error(json.error?.message ?? "Falha ao carregar.");
-        data = json.data;
+        const caminho = await uploadDirecto(file!);
+        data = await post("/api/projects", {
+          sourceType: "upload", remotePath: caminho, fileName: file!.name, size: file!.size,
+        });
       } else {
         data = await post("/api/projects", { sourceType: "url", url: url.trim() });
       }

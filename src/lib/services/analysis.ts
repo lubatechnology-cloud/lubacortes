@@ -29,6 +29,13 @@ export async function runAnalyzeJob(job: Job) {
   };
   const project = get<Project>("SELECT * FROM projects WHERE id=? AND user_id=?", payload.projectId, job.user_id);
   if (!project?.storage_path) throw new Error("Projecto ou ficheiro de origem não encontrado.");
+  if (!project.storage_path && project.remote_path) {
+    const ext = (project.remote_path.split(".").pop() ?? "mp4").toLowerCase().replace(/[^a-z0-9]/g, "") || "mp4";
+    const rel = `projects/${project.user_id}/${project.id}/source.${ext}`;
+    run("UPDATE projects SET storage_path=? WHERE id=?", rel, project.id);
+    project.storage_path = rel;
+  }
+
   if (payload.liveUrl) {
     progress(job.id, 3, "a_capturar_live");
     const rel = `projects/${project.user_id}/${project.id}/source.mp4`;

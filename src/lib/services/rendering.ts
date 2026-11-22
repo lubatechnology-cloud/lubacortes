@@ -12,6 +12,7 @@ import type { Job } from "../queue";
 import { featuresForUser, recordCost, shouldWatermark } from "../billing";
 import { concatVideos } from "../video/ffmpeg";
 import { ensureLocalSource } from "./source";
+import { enviarRemoto } from "../storage-remote";
 
 type ClipRow = {
   id: string;
@@ -63,8 +64,8 @@ export async function runRenderJob(job: Job) {
   };
   const clip = get<ClipRow>("SELECT * FROM clips WHERE id=? AND user_id=?", payload.clipId, job.user_id);
   if (!clip) throw new Error("Corte não encontrado.");
-  const project = get<{ id: string; storage_path: string | null; source_url: string | null }>(
-    "SELECT id, storage_path, source_url FROM projects WHERE id=? AND user_id=?", clip.project_id, job.user_id,
+  const project = get<{ id: string; storage_path: string | null; source_url: string | null; remote_path: string | null }>(
+    "SELECT id, storage_path, source_url, remote_path FROM projects WHERE id=? AND user_id=?", clip.project_id, job.user_id,
   );
   if (!project?.storage_path) throw new Error("Vídeo de origem não encontrado.");
   const video = await ensureLocalSource(project);
@@ -182,9 +183,15 @@ export async function runRenderJob(job: Job) {
     /* opcional */
   }
 
+  const remoteClip = `clips/${clip.user_id}/${clip.project_id}/${clip.id}.mp4`;
+  const remoteThumb = `clips/${clip.user_id}/${clip.project_id}/${clip.id}.jpg`;
+  const enviouClip = await enviarRemoto(remoteClip, fs.readFileSync(outAbs), "video/mp4");
+  if (fs.existsSync(thumbAbs)) await enviarRemoto(remoteThumb, fs.readFileSync(thumbAbs), "image/jpeg");
+
   run(
-    "UPDATE clips SET status='ready', storage_path=?, thumb_path=?, duration=?, style_json=?, updated_at=?, error=NULL WHERE id=?",
-    outRel, thumbRel, meta?.duration ?? Number((clip.end_sec - clip.start_sec).toFixed(2)), JSON.stringify(style), nowIso(), clip.id,
+    "UPDATE clips SET status='ready', storage_path=?, thumb_path=?, remote_path=?, thumb_remote_path=?, duration=?, style_json=?, updated_at=?, error=NULL WHERE id=?",
+    outRel, thumbRel, enviouClip ? remoteClip : null, enviouClip ? remoteThumb : null,
+    meta?.duration ?? Number((clip.end_sec - clip.start_sec).toFixed(2)), JSON.stringify(style), nowIso(), clip.id,
   );
   run("INSERT INTO api_usage (id, user_id, project_id, service, operation, units, created_at) VALUES (?,?,?,?,?,?,?)",
     uid("use_"), job.user_id, clip.project_id, "ffmpeg", "render_clip", 1, nowIso());

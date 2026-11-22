@@ -8,6 +8,8 @@ type Clip = {
   title: string;
   thumb_path: string | null;
   storage_path: string | null;
+  remote_path: string | null;
+  thumb_remote_path: string | null;
   duration: number;
   status: string;
   is_unlocked: number;
@@ -61,7 +63,7 @@ export function unlockClipWithCredit(userId: string, clipId: string) {
 /** Verificação de autorização no servidor antes de servir qualquer ficheiro. */
 export function canDownload(userId: string, clipId: string): Clip | null {
   const clip = get<Clip>("SELECT * FROM clips WHERE id=? AND user_id=?", clipId, userId);
-  if (!clip || !clip.is_unlocked || clip.status !== "ready" || !clip.storage_path) return null;
+  if (!clip || !clip.is_unlocked || clip.status !== "ready" || (!clip.storage_path && !clip.remote_path)) return null;
   return clip;
 }
 

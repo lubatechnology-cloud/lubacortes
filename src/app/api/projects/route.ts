@@ -1,11 +1,17 @@
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { fail, ok, readJson } from "@/lib/http";
-import { createLiveProject, createProjectFromUpload, createProjectFromUrl, listProjects } from "@/lib/services/projects";
+import { createLiveProject, createProjectFromRemote, createProjectFromUpload, createProjectFromUrl, listProjects } from "@/lib/services/projects";
 
 export const dynamic = "force-dynamic";
 
 const urlSchema = z.object({ sourceType: z.literal("url"), url: z.string().trim().url("Introduza um URL válido.") });
+const remoteSchema = z.object({
+  sourceType: z.literal("upload"),
+  remotePath: z.string().min(1),
+  fileName: z.string().min(1).max(200),
+  size: z.number().int().positive(),
+});
 const liveSchema = z.object({
   sourceType: z.literal("live"),
   url: z.string().trim().url("Introduza um URL válido."),
@@ -32,7 +38,11 @@ export async function POST(req: Request) {
       const project = await createProjectFromUpload(user.id, file);
       return ok({ project }, 201);
     }
-    const raw = await readJson(req) as { sourceType?: string };
+    const raw = await readJson(req) as { sourceType?: string; remotePath?: string };
+    if (raw.sourceType === "upload" && raw.remotePath) {
+      const body = remoteSchema.parse(raw);
+      return ok(createProjectFromRemote(user.id, body.remotePath, body.fileName, body.size), 201);
+    }
     if (raw.sourceType === "live") {
       const body = liveSchema.parse(raw);
       const result = createLiveProject(user.id, body.url, body.captureSeconds);

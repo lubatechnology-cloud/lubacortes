@@ -3,6 +3,7 @@ import { get } from "@/lib/db";
 import { ApiError, fail } from "@/lib/http";
 import { canDownload } from "@/lib/services/entitlements";
 import { readStorage, statStorage } from "@/lib/storage";
+import { descarregarRemoto } from "@/lib/storage-remote";
 
 export const dynamic = "force-dynamic";
 
@@ -19,13 +20,16 @@ export async function GET(_req: Request, { params }: Ctx) {
   try {
     const user = await requireUser();
     const { id } = await params;
-    const clip = get<{ id: string; user_id: string; thumb_path: string | null }>("SELECT id,user_id,thumb_path FROM clips WHERE id=? AND user_id=?", id, user.id);
+    const clip = get<{ id: string; user_id: string; thumb_path: string | null; thumb_remote_path: string | null }>(
+      "SELECT id,user_id,thumb_path,thumb_remote_path FROM clips WHERE id=? AND user_id=?", id, user.id,
+    );
     if (!clip) throw new ApiError(404, "Corte não encontrado.", "not_found");
     const unlocked = canDownload(user.id, id);
-    if (!unlocked || !clip.thumb_path || !statStorage(clip.thumb_path)) {
-      return new Response(PLACEHOLDER, { headers: { "Content-Type": "image/svg+xml", "Cache-Control": "private, no-store" } });
-    }
-    const data = readStorage(clip.thumb_path);
+    if (!unlocked) return new Response(PLACEHOLDER, { headers: { "Content-Type": "image/svg+xml", "Cache-Control": "private, no-store" } });
+    let data: Buffer | null = null;
+    if (clip.thumb_path && statStorage(clip.thumb_path)) data = readStorage(clip.thumb_path);
+    if (!data && clip.thumb_remote_path) data = await descarregarRemoto(clip.thumb_remote_path);
+    if (!data) return new Response(PLACEHOLDER, { headers: { "Content-Type": "image/svg+xml", "Cache-Control": "private, no-store" } });
     return new Response(new Uint8Array(data), {
       headers: { "Content-Type": "image/jpeg", "Cache-Control": "private, no-store" },
     });

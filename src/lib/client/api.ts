@@ -9,6 +9,12 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
       ...(init?.headers ?? {}),
     },
   });
+  const type = res.headers.get("content-type") ?? "";
+  if (!type.includes("application/json")) {
+    const texto = (await res.text()).slice(0, 120);
+    if (res.status === 413) throw new Error("O ficheiro é demasiado grande para este servidor. Use o carregamento directo para armazenamento.");
+    throw new Error(`Resposta inesperada do servidor (${res.status}): ${texto}`);
+  }
   const json = (await res.json().catch(() => ({}))) as ApiResponse<T>;
   if (!res.ok || !json.ok) throw new Error(json.error?.message ?? `Erro ${res.status}`);
   return json.data as T;
