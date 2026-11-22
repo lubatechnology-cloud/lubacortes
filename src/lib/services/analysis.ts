@@ -37,7 +37,6 @@ export async function runAnalyzeJob(job: Job) {
     run("UPDATE projects SET storage_path=? WHERE id=?", rel, project.id);
     project.storage_path = rel;
   }
-  if (!project.storage_path) throw new Error("Projecto ou ficheiro de origem não encontrado.");
 
   if (payload.youtubeUrl) {
     progress(job.id, 2, "a_descarregar_youtube");
@@ -68,6 +67,7 @@ export async function runAnalyzeJob(job: Job) {
     project.duration = meta.duration;
   }
 
+  if (!project.storage_path) throw new Error("Projecto ou ficheiro de origem não encontrado.");
   const video = await ensureLocalSource(project);
   const workDir = `projects/${project.user_id}/${project.id}`;
 

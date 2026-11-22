@@ -3,6 +3,7 @@ import path from "node:path";
 import ytdlp from "youtube-dl-exec";
 import { storagePath, writeStorage } from "../storage";
 import { enviarRemoto } from "../storage-remote";
+import { ffmpegBin } from "./ffmpeg";
 
 export type YouTubeDownload = {
   caminhoLocal: string;
@@ -24,15 +25,17 @@ export async function baixarYouTube(
   const info = await ytdlp(url, {
     dumpSingleJson: true,
     noWarnings: true,
-    noCheckCertificates: false,
     skipDownload: true,
     noPlaylist: true,
+    jsRuntimes: "node",
   }) as { title?: string; duration?: number };
 
   await ytdlp(url, {
     output: abs,
     format: "bv*[height<=1080][ext=mp4]+ba[ext=m4a]/b[height<=1080][ext=mp4]/best[ext=mp4]/best",
     mergeOutputFormat: "mp4",
+    ffmpegLocation: ffmpegBin(),
+    jsRuntimes: "node",
     noPlaylist: true,
     noWarnings: true,
   });
