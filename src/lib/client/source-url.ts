@@ -13,6 +13,16 @@ export function isPlatformPage(raw: string): boolean {
   }
 }
 
+export function isYoutubeUrl(raw: string): boolean {
+  try {
+    const u = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`);
+    const h = u.hostname.toLowerCase().replace(/^www\./, "");
+    return h === "youtube.com" || h.endsWith(".youtube.com") || h === "youtu.be";
+  } catch {
+    return false;
+  }
+}
+
 export function isDirectVideoUrl(raw: string): boolean {
   try {
     const u = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`);

@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sparkles, Link2, Upload } from "lucide-react";
 import { post } from "@/lib/client/api";
 import { Alert, Spinner } from "@/components/ui";
-import { isPlatformPage } from "@/lib/client/source-url";
+import { isPlatformPage, isYoutubeUrl } from "@/lib/client/source-url";
 
 export function NewProjectBox() {
   const router = useRouter();
@@ -14,6 +14,21 @@ export function NewProjectBox() {
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [yt, setYt] = useState<{ titulo: string; autor: string; miniatura: string } | null>(null);
+  const [ytLoading, setYtLoading] = useState(false);
+
+  useEffect(() => {
+    if (mode !== "url" || !isYoutubeUrl(url)) { setYt(null); return; }
+    let cancelado = false;
+    setYtLoading(true);
+    const t = setTimeout(() => {
+      post<{ info: { titulo: string; autor: string; miniatura: string } }>("/api/sources/youtube", { url })
+        .then((r) => { if (!cancelado) setYt(r.info); })
+        .catch(() => { if (!cancelado) setYt(null); })
+        .finally(() => { if (!cancelado) setYtLoading(false); });
+    }, 500);
+    return () => { cancelado = true; clearTimeout(t); };
+  }, [url, mode]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault(); setError(""); setLoading(true);
@@ -55,7 +70,20 @@ export function NewProjectBox() {
         <button className="btn-primary" disabled={loading}>{loading ? <Spinner /> : <Sparkles size={16} />} Importar vídeo</button>
       </form>
       {error && <div className="mt-3"><Alert tone="error">{error}</Alert></div>}
-      {mode === "url" && isPlatformPage(url) && (
+      {mode === "url" && isYoutubeUrl(url) && (yt || ytLoading) && (
+        <div className="mt-3 flex items-center gap-3 rounded-xl border p-3 text-left" style={{ borderColor: "var(--border)" }}>
+          {yt ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={yt.miniatura} alt="" className="h-14 w-24 shrink-0 rounded-lg object-cover" />
+          ) : <div className="h-14 w-24 shrink-0 animate-pulse rounded-lg bg-slate-300/30" />}
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-bold">{yt?.titulo ?? "A identificar vídeo…"}</p>
+            <p className="text-[11px] muted">{yt?.autor ?? "YouTube"} · carregue o ficheiro para processar</p>
+          </div>
+          <button className="btn-primary shrink-0 !px-3 !py-2 !text-xs" onClick={() => setMode("file")}>Carregar ficheiro</button>
+        </div>
+      )}
+      {mode === "url" && isPlatformPage(url) && !isYoutubeUrl(url) && (
         <div className="mt-3">
           <Alert>
             Link de plataforma protegida: use o carregamento de ficheiro ou um URL directo (.mp4/.webm/.mov) do seu alojamento.
