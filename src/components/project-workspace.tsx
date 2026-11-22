@@ -116,7 +116,14 @@ export function ProjectWorkspace({ initial }: { initial: Detail }) {
             {p.detected_language ? ` · idioma: ${p.detected_language}` : ""}
           </p>
         </div>
-        <StatusBadge status={p.status} />
+        <div className="flex items-center gap-2">
+          {data.clips.length > 0 && (
+            <button className="btn-ghost !text-xs" onClick={() => setModo(modo === "editar" ? "escolher" : "editar")}>
+              <Sparkles size={14} /> {modo === "editar" ? "Ver resultados" : "Editar com IA"}
+            </button>
+          )}
+          <StatusBadge status={p.status} />
+        </div>
       </div>
 
       {error && <Alert tone="error">{error}</Alert>}
