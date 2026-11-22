@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Sparkles, ArrowRight, Upload, Link2 } from "lucide-react";
 import { post } from "@/lib/client/api";
 import { Alert, Spinner } from "@/components/ui";
-import { isPlatformPage, isYoutubeUrl } from "@/lib/client/source-url";
+import { isPlatformPage, isYoutubeUrl, isDirectVideoUrl } from "@/lib/client/source-url";
 import { uploadDirecto } from "@/lib/client/upload";
 
 export function HeroForm({ authenticated }: { authenticated: boolean }) {
@@ -82,7 +82,7 @@ export function HeroForm({ authenticated }: { authenticated: boolean }) {
         ) : (
           <input className="input flex-1 !border-transparent !bg-transparent !text-sm" type="file" accept="video/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
         )}
-        <button className="btn-primary whitespace-nowrap !px-6" disabled={loading}>
+        <button className="btn-primary whitespace-nowrap !px-6" disabled={loading || (mode === "url" && isPlatformPage(url) && !isDirectVideoUrl(url))} title={mode === "url" && isPlatformPage(url) && !isDirectVideoUrl(url) ? "Link de plataforma protegida: carregue o ficheiro ou use um URL directo" : undefined}>
           {loading ? <Spinner /> : <Sparkles size={17} />}
           {authenticated ? "Analisar vídeo" : "Começar grátis"}
           {!loading && <ArrowRight size={16} />}

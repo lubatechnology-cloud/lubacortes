@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Sparkles, Link2, Upload, Radio } from "lucide-react";
 import { post } from "@/lib/client/api";
 import { Alert, Spinner } from "@/components/ui";
-import { isPlatformPage, isYoutubeUrl } from "@/lib/client/source-url";
+import { isPlatformPage, isYoutubeUrl, isDirectVideoUrl } from "@/lib/client/source-url";
 import { uploadDirecto } from "@/lib/client/upload";
 
 export function NewProjectBox() {
@@ -91,7 +91,7 @@ export function NewProjectBox() {
         ) : (
           <input className="input flex-1" type="file" accept="video/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
         )}
-        <button className="btn-primary" disabled={loading || (mode === "live" && !liveValida)}>{loading ? <Spinner /> : <Sparkles size={16} />} {mode === "live" ? "Capturar live" : "Importar vídeo"}</button>
+        <button className="btn-primary" disabled={loading || (mode === "live" && !liveValida) || (mode === "url" && isPlatformPage(url) && !isDirectVideoUrl(url))}>{loading ? <Spinner /> : <Sparkles size={16} />} {mode === "live" ? "Capturar live" : "Importar vídeo"}</button>
       </form>
       {mode === "live" && (
         <p className="mt-2 text-[11px] muted">
