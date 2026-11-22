@@ -153,7 +153,7 @@ export async function runRenderJob(job: Job) {
   await renderClip({
     input: video,
     output: mainAbs,
-    maxWidth: feat.maxWidth,
+    maxWidth: Number((savedStyle.maxWidth as number | undefined) ?? feat.maxWidth),
     start: clip.start_sec,
     end: clip.end_sec,
     formatId: clip.format,

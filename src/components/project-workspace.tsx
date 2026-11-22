@@ -8,6 +8,7 @@ import { SUBTITLE_LANGUAGES } from "@/lib/ai/languages-client";
 import { VIDEO_FORMATS } from "@/lib/video/formats-client";
 import { Wand2, Download, Lock, Unlock, Clock, Sparkles, RefreshCw, Loader2, Pencil, Focus } from "lucide-react";
 import { ClipEditor } from "@/components/clip-editor";
+import { AiEditor } from "@/components/ai-editor";
 
 export type Project = { id: string; title: string; status: string; duration: number | null; width: number | null; height: number | null; detected_language: string | null; error: string | null; source_type: string };
 export type Moment = { id: string; start_sec: number; end_sec: number; title: string; description: string; reason: string; score: number; category: string };
@@ -50,6 +51,7 @@ export function ProjectWorkspace({ initial }: { initial: Detail }) {
   const [credits, setCredits] = useState(0);
   const [freeUsed, setFreeUsed] = useState(false);
   const [features, setFeatures] = useState<PlanFeatures | null>(null);
+  const [modo, setModo] = useState<"escolher" | "auto" | "editar">("escolher");
 
   const load = useCallback(async () => {
     const [d, a] = await Promise.all([
@@ -123,7 +125,38 @@ export function ProjectWorkspace({ initial }: { initial: Detail }) {
 
       {p.status === "failed" && <Alert tone="error">O processamento falhou. Pode tentar novamente com outras opções abaixo.</Alert>}
 
-      {(p.status === "ready" && data.moments.length === 0) && (
+      {(p.status === "ready" && data.moments.length === 0 && modo === "escolher" && !processing) && (
+        <div className="grid gap-4 md:grid-cols-2">
+          <button className="card card-hover p-6 text-left" onClick={() => setModo("auto")}>
+            <span className="mb-3 grid h-11 w-11 place-items-center rounded-xl bg-blue-500/10 text-blue-500"><Wand2 size={20} /></span>
+            <h2 className="text-lg font-bold">Gerar cortes automaticamente</h2>
+            <p className="mt-1 text-sm muted">A IA encontra os melhores momentos e cria vários cortes prontos a publicar. Escolha idioma, formato, qualidade e quantidade.</p>
+            <span className="btn-primary mt-5 !text-xs">Continuar com cortes automáticos</span>
+          </button>
+          <button className="card card-hover p-6 text-left" onClick={() => setModo("editar")}>
+            <span className="mb-3 grid h-11 w-11 place-items-center rounded-xl bg-cyan-500/10 text-cyan-500"><Sparkles size={20} /></span>
+            <h2 className="text-lg font-bold">Editar com IA</h2>
+            <p className="mt-1 text-sm muted">Diga o que quer mudar em linguagem natural. O assistente usa ferramentas open-source para aplicar formato, legendas, enquadramento e títulos.</p>
+            <span className="btn-ghost mt-5 !text-xs">Abrir assistente de edição</span>
+          </button>
+        </div>
+      )}
+
+      {modo === "editar" && (
+        <div>
+          <button className="btn-ghost mb-3 !text-xs" onClick={() => setModo("escolher")}>← Escolher outro modo</button>
+          {data.clips.length === 0 ? (
+            <div className="card p-6">
+              <p className="text-sm muted">Ainda não há cortes para editar. Gere primeiro os cortes automáticos.</p>
+              <button className="btn-primary mt-4 !text-xs" onClick={() => setModo("auto")}>Gerar cortes automáticos</button>
+            </div>
+          ) : (
+            <AiEditor clipId={data.clips[0].id} clips={data.clips.map((c) => ({ id: c.id, title: c.title }))} onApplied={() => load().catch(() => {})} />
+          )}
+        </div>
+      )}
+
+      {(p.status === "ready" && data.moments.length === 0 && modo === "auto") && (
         <div className="grid gap-4 lg:grid-cols-3">
           <div className="card overflow-hidden lg:col-span-2">
             <div className="aspect-video bg-black">
