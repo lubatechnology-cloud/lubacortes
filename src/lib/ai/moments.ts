@@ -1,5 +1,6 @@
 import type { Segment } from "./transcribe";
 import { config } from "../config";
+import { analisarEmocao } from "./emotion";
 
 export type Moment = {
   id: string;
@@ -12,6 +13,8 @@ export type Moment = {
   category: string;
   transcript: string;
   signals: string[];
+  emocao: string;
+  intensidade: number;
 };
 
 export type MomentInput = {
@@ -22,6 +25,7 @@ export type MomentInput = {
   maxClips?: number;
   minSeconds?: number;
   maxSeconds?: number;
+  emocoes?: { categoria: string; intensidade: number }[];
 };
 
 type Category = {
@@ -137,6 +141,8 @@ export function detectMoments(input: MomentInput): Moment[] {
     score: number;
     category: string;
     signals: string[];
+    emocao: string;
+    intensidade: number;
   };
   const candidates: Candidate[] = [];
 
@@ -215,6 +221,12 @@ export function detectMoments(input: MomentInput): Moment[] {
         }
         if (length > max * 0.92) score -= 0.03;
 
+        const emocao = analisarEmocao(text);
+        if (emocao.intensidade > 0.3) {
+          score += 0.04 + emocao.intensidade * 0.08;
+          signals.push(`Emoção ${emocao.categoria} (${Math.round(emocao.intensidade * 100)}%)`);
+        }
+
         candidates.push({
           start: units[i].start,
           end,
@@ -222,6 +234,8 @@ export function detectMoments(input: MomentInput): Moment[] {
           score: Math.max(0, Math.min(1, score)),
           category: best.n > 0 ? best.c.name : enHits > 0 ? "impacto" : "geral",
           signals,
+          emocao: emocao.categoria,
+          intensidade: emocao.intensidade,
         });
       }
     }
@@ -249,6 +263,8 @@ export function detectMoments(input: MomentInput): Moment[] {
             hasScene ? "Mudança de cena nas proximidades" : "Sem mudança de cena detetada",
             "Sem transcrição disponível — pontuação apenas acústica",
           ],
+          emocao: "neutro",
+          intensidade: 0,
         });
       }
     }
@@ -285,6 +301,8 @@ export function detectMoments(input: MomentInput): Moment[] {
       category: c.category,
       transcript,
       signals: c.signals,
+      emocao: c.emocao,
+      intensidade: c.intensidade,
     } satisfies Moment;
   });
 }

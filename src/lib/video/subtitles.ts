@@ -12,6 +12,8 @@ export type SubtitleStyle = {
   animation: "none" | "fade" | "pop";
   template?: string;
   untranslated?: boolean;
+  palavraDestacada?: string;
+  emocaoFoco?: string;
 };
 
 export const DEFAULT_SUBTITLE_STYLE: SubtitleStyle = {
@@ -105,6 +107,11 @@ export function buildAss(
     const start = Math.max(0, s.start - offsetStart);
     const end = s.end > s.start ? s.end - offsetStart : start + 2;
     let text = sanitize(s.text);
+    if (style.palavraDestacada) {
+      const alvo = style.palavraDestacada.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      text = text.replace(new RegExp(`\\b${alvo}\\b`, "gi"), (m) =>
+        `{\\c${assColor(style.highlightColor)}}${m}{\\c${assColor(style.primaryColor)}}`);
+    }
     if (style.karaoke) {
       const words = text.split(" ");
       const totalChars = words.join("").length || 1;

@@ -11,7 +11,7 @@ import { ClipEditor } from "@/components/clip-editor";
 import { AiEditor } from "@/components/ai-editor";
 
 export type Project = { id: string; title: string; status: string; duration: number | null; width: number | null; height: number | null; detected_language: string | null; error: string | null; source_type: string };
-export type Moment = { id: string; start_sec: number; end_sec: number; title: string; description: string; reason: string; score: number; category: string };
+export type Moment = { id: string; start_sec: number; end_sec: number; title: string; description: string; reason: string; score: number; category: string; emocao?: string; intensidade?: number };
 export type Clip = {
   id: string; title: string; description: string; start_sec: number; end_sec: number; duration: number;
   format: string; subtitle_lang: string; status: string; is_unlocked: number; unlock_kind: string | null; storage_path: string | null;
@@ -254,6 +254,9 @@ export function ProjectWorkspace({ initial }: { initial: Detail }) {
                   <span className="badge bg-blue-500/10 text-blue-500">{fmt(m.start_sec)} – {fmt(m.end_sec)}</span>
                   <span className="badge bg-cyan-500/10 text-cyan-500">Relevância {(m.score * 100).toFixed(0)}%</span>
                   <span className="badge bg-violet-500/10 text-violet-500">{m.category}</span>
+                  {m.emocao && m.emocao !== "neutro" && (
+                    <span className="badge bg-rose-500/10 text-rose-500">Emoção: {m.emocao} · {Math.round((m.intensidade ?? 0) * 100)}%</span>
+                  )}
                 </div>
                 <p className="mt-2 text-xs muted">{m.reason}</p>
               </div>

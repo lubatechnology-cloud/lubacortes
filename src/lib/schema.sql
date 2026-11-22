@@ -103,6 +103,8 @@ CREATE TABLE IF NOT EXISTS moments (
   reason TEXT NOT NULL,
   score REAL NOT NULL,
   category TEXT NOT NULL,
+  emocao TEXT NOT NULL DEFAULT 'neutro',
+  intensidade REAL NOT NULL DEFAULT 0,
   transcript TEXT,
   created_at TEXT NOT NULL
 );

@@ -13,7 +13,7 @@ export async function GET(_req: Request, { params }: Ctx) {
     const { id } = await params;
     const project = getProject(user.id, id);
     if (!project) throw new ApiError(404, "Projecto não encontrado.", "not_found");
-    const moments = all("SELECT * FROM moments WHERE project_id=? ORDER BY score DESC", id);
+    const moments = all("SELECT id,start_sec,end_sec,title,description,reason,score,category,emocao,intensidade FROM moments WHERE project_id=? ORDER BY score DESC", id);
     const clips = all("SELECT * FROM clips WHERE project_id=? AND user_id=? ORDER BY start_sec ASC", id, user.id);
     const jobs = all("SELECT id,type,status,progress,stage,error,payload_json,created_at,updated_at FROM jobs WHERE project_id=? AND user_id=? ORDER BY created_at DESC", id, user.id)
       .map((j) => {

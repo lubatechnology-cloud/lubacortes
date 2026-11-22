@@ -2,7 +2,8 @@ import { all, get, nowIso, run, uid } from "../db";
 import { enqueue, progress } from "../queue";
 import { storagePath } from "../storage";
 import { ensureLocalSource } from "./source";
-import { detectScenes, detectSilences, extractAudio, probe } from "../video/ffmpeg";
+import { detectScenes, detectSilences, extractAudio, extractThumbnail, probe } from "../video/ffmpeg";
+import { capturarLive } from "../video/live";
 import { getTranscriptionProvider } from "../ai/transcribe";
 import { detectMoments } from "../ai/moments";
 import { DEFAULT_SUBTITLE_STYLE, type SubtitleStyle } from "../video/subtitles";
@@ -23,9 +24,25 @@ export async function runAnalyzeJob(job: Job) {
     autofocusMode?: "center" | "model" | "manual";
     groupFocus?: boolean;
     stylePreset?: string;
+    liveUrl?: string;
+    captureSeconds?: number;
   };
   const project = get<Project>("SELECT * FROM projects WHERE id=? AND user_id=?", payload.projectId, job.user_id);
   if (!project?.storage_path) throw new Error("Projecto ou ficheiro de origem não encontrado.");
+  if (payload.liveUrl) {
+    progress(job.id, 3, "a_capturar_live");
+    const rel = `projects/${project.user_id}/${project.id}/source.mp4`;
+    const abs = storagePath(rel);
+    await capturarLive(payload.liveUrl, payload.captureSeconds ?? 60, abs);
+    const meta = await probe(abs);
+    const thumbRel = `projects/${project.user_id}/${project.id}/thumb.jpg`;
+    try { await extractThumbnail(abs, storagePath(thumbRel), 1); } catch { /* opcional */ }
+    run("UPDATE projects SET storage_path=?, thumbnail_path=?, duration=?, status='analyzing', updated_at=? WHERE id=?",
+      rel, thumbRel, meta.duration, nowIso(), project.id);
+    project.storage_path = rel;
+    project.duration = meta.duration;
+  }
+
   const video = await ensureLocalSource(project);
   const workDir = `projects/${project.user_id}/${project.id}`;
 
@@ -113,8 +130,8 @@ export async function runAnalyzeJob(job: Job) {
     const now = nowIso();
     const momentId = uid("mom_");
     run(
-      "INSERT INTO moments (id, project_id, start_sec, end_sec, title, description, reason, score, category, transcript, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-      momentId, project.id, m.startSec, m.endSec, m.title, m.description, m.reason, m.score, m.category, m.transcript, now,
+      "INSERT INTO moments (id, project_id, start_sec, end_sec, title, description, reason, score, category, emocao, intensidade, transcript, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+      momentId, project.id, m.startSec, m.endSec, m.title, m.description, m.reason, m.score, m.category, m.emocao, m.intensidade, m.transcript, now,
     );
     const clipId = uid("clip_");
     const s = suggestions(formatId, m.title);

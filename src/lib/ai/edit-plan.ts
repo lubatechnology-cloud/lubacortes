@@ -17,6 +17,9 @@ export const EditOperation = z.discriminatedUnion("op", [
   z.object({ op: z.literal("set_title"), titulo: z.string().min(1).max(200) }),
   z.object({ op: z.literal("set_caption"), indice: z.number().int().min(0), texto: z.string().min(1).max(500) }),
   z.object({ op: z.literal("trim"), inicio: z.number().min(0), fim: z.number().min(0) }),
+  z.object({ op: z.literal("manter_emocao"), emocao: z.enum(["alegria","tristeza","raiva","surpresa","medo","curiosidade","inspiracao"]) }),
+  z.object({ op: z.literal("remover_silencios"), limite_db: z.number().min(-60).max(0).optional() }),
+  z.object({ op: z.literal("destacar_palavra"), palavra: z.string().min(1).max(60), indice: z.number().int().min(0).optional() }),
 ]);
 
 export type EditOperationType = z.infer<typeof EditOperation>;
@@ -34,6 +37,9 @@ Operações permitidas (usa exatamente estes nomes e campos):
 - set_title: {"op":"set_title","titulo":"..."}
 - set_caption: {"op":"set_caption","indice":0,"texto":"..."}
 - trim: {"op":"trim","inicio":segundos,"fim":segundos}
+- manter_emocao: {"op":"manter_emocao","emocao":"alegria"|"tristeza"|"raiva"|"surpresa"|"medo"|"curiosidade"|"inspiracao"} (realça legendas com essa emoção)
+- remover_silencios: {"op":"remover_silencios","limite_db":-35} (remove pausas longas na renderização)
+- destacar_palavra: {"op":"destacar_palavra","palavra":"...","indice":0} (destaca a palavra na legenda)
 
 Regras: responde SÓ com JSON. Não uses outras operações. Não inventes valores para campos que o utilizador não pediu. Se o pedido não for possible com estas operações, devolve operacoes vazias e explica o motivo em Português de Angola.`;
 

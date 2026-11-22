@@ -82,6 +82,23 @@ export async function POST(req: Request) {
           novoInicio = Math.max(0, Math.min(op.inicio, clip.end_sec - 1));
           novoFim = Math.max(novoInicio + 1, Math.min(op.fim, clip.end_sec));
           break;
+        case "manter_emocao":
+          style.emocaoFoco = op.emocao;
+          style.karaoke = true;
+          break;
+        case "remover_silencios":
+          style.removerSilencios = true;
+          style.limiteSilencioDb = op.limite_db ?? -35;
+          break;
+        case "destacar_palavra": {
+          style.palavraDestacada = op.palavra;
+          const idx = op.indice ?? 0;
+          if (idx < legendas.length) {
+            const atual = legendas[idx].display_text;
+            run("UPDATE subtitle_segments SET display_text=? WHERE clip_id=? AND idx=?", atual, clipId, idx);
+          }
+          break;
+        }
       }
     }
 

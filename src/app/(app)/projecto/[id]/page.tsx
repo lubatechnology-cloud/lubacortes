@@ -13,7 +13,7 @@ export default async function ProjectPage({ params }: Ctx) {
   const project = getProject(user.id, id);
   if (!project) notFound();
   const moments = all<Moment>(
-    "SELECT id,start_sec,end_sec,title,description,reason,score,category FROM moments WHERE project_id=? ORDER BY score DESC", id);
+    "SELECT id,start_sec,end_sec,title,description,reason,score,category,emocao,intensidade FROM moments WHERE project_id=? ORDER BY score DESC", id);
   const clips = all<Clip>(
     "SELECT * FROM clips WHERE project_id=? AND user_id=? ORDER BY start_sec ASC", id, user.id);
   const jobs = all("SELECT id,type,status,progress,stage,error,payload_json,created_at FROM jobs WHERE project_id=? AND user_id=? ORDER BY created_at DESC", id, user.id)

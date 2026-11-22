@@ -7,6 +7,7 @@ import { extractThumbnail, probe } from "../video/ffmpeg";
 import { fetchToBuffer, validateSourceUrl } from "../video/url";
 import { ApiError } from "../http";
 import { chargeInputMinutes, featuresForUser } from "../billing";
+import { validarUrlLive } from "../video/live";
 
 export type Project = {
   id: string;
@@ -100,6 +101,27 @@ async function finalizeImport(id: string, userId: string, rel: string): Promise<
     rel, thumbRel, meta.duration, meta.width, meta.height, now, id,
   );
   return getProject(userId, id)!;
+}
+
+/** Capta um trecho de uma live HLS autorizada e cria o projecto para análise. */
+export function createLiveProject(userId: string, url: string, segundos: number) {
+  validarUrlLive(url);
+  const duracao = Math.max(5, Math.min(600, Math.round(segundos)));
+  const id = uid("prj_");
+  const now = nowIso();
+  run(
+    "INSERT INTO projects (id,user_id,title,source_type,source_url,duration,status,created_at,updated_at) VALUES (?,?,?,'url',?,?,'importing',?,?)",
+    id, userId, `Live — ${new URL(url).hostname}`, url, duracao, now, now,
+  );
+  chargeInputMinutes(userId, duracao, id, "live");
+  const jobId = enqueue(
+    "analyze",
+    { projectId: id, liveUrl: url, captureSeconds: duracao, subtitleLang: "pt", formatId: "reels", style: {} },
+    userId,
+    id,
+    featuresForUser(userId).priority,
+  );
+  return { project: getProject(userId, id)!, jobId };
 }
 
 /** Passo 3-5: depois de escolher idioma e formato, inicia a análise e geração. */

@@ -2,20 +2,34 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles, Link2, Upload } from "lucide-react";
+import { Sparkles, Link2, Upload, Radio } from "lucide-react";
 import { post } from "@/lib/client/api";
 import { Alert, Spinner } from "@/components/ui";
 import { isPlatformPage, isYoutubeUrl } from "@/lib/client/source-url";
 
 export function NewProjectBox() {
   const router = useRouter();
-  const [mode, setMode] = useState<"url" | "file">("url");
+  const [mode, setMode] = useState<"url" | "file" | "live">("url");
   const [url, setUrl] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [liveUrl, setLiveUrl] = useState("");
+  const [segundos, setSegundos] = useState(60);
+  const [liveValida, setLiveValida] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [yt, setYt] = useState<{ titulo: string; autor: string; miniatura: string } | null>(null);
   const [ytLoading, setYtLoading] = useState(false);
+
+  useEffect(() => {
+    if (mode !== "live" || !liveUrl) { setLiveValida(false); return; }
+    let cancelado = false;
+    const t = setTimeout(() => {
+      post<{ valida: boolean }>("/api/live/validar", { url: liveUrl })
+        .then((r) => { if (!cancelado) setLiveValida(r.valida); })
+        .catch(() => { if (!cancelado) setLiveValida(false); });
+    }, 600);
+    return () => { cancelado = true; clearTimeout(t); };
+  }, [liveUrl, mode]);
 
   useEffect(() => {
     if (mode !== "url" || !isYoutubeUrl(url)) { setYt(null); return; }
@@ -41,6 +55,8 @@ export function NewProjectBox() {
         const json = await res.json();
         if (!res.ok || !json.ok) throw new Error(json.error?.message ?? "Falha.");
         data = json.data;
+      } else if (mode === "live") {
+        data = await post("/api/projects", { sourceType: "live", url: liveUrl, captureSeconds: segundos });
       } else {
         data = await post("/api/projects", { sourceType: "url", url });
       }
@@ -59,16 +75,30 @@ export function NewProjectBox() {
         <div className="flex gap-1">
           <button onClick={() => setMode("url")} className={`btn ${mode === "url" ? "btn-primary" : "btn-ghost"} !px-3 !py-1.5 !text-xs`}><Link2 size={14} /> URL</button>
           <button onClick={() => setMode("file")} className={`btn ${mode === "file" ? "btn-primary" : "btn-ghost"} !px-3 !py-1.5 !text-xs`}><Upload size={14} /> Ficheiro</button>
+          <button onClick={() => setMode("live")} className={`btn ${mode === "live" ? "btn-primary" : "btn-ghost"} !px-3 !py-1.5 !text-xs`}><Radio size={14} /> Live</button>
         </div>
       </div>
       <form onSubmit={submit} className="flex flex-col gap-2 sm:flex-row">
         {mode === "url" ? (
           <input className="input flex-1" placeholder="Coloque o URL do seu vídeo" value={url} onChange={(e) => setUrl(e.target.value)} />
+        ) : mode === "live" ? (
+          <>
+            <input className="input flex-1" placeholder="URL da live HLS (.m3u8)" value={liveUrl} onChange={(e) => setLiveUrl(e.target.value)} />
+            <select className="input !w-32" value={segundos} onChange={(e) => setSegundos(Number(e.target.value))}>
+              <option value={30}>30 segundos</option><option value={60}>60 segundos</option>
+              <option value={120}>2 minutos</option><option value={300}>5 minutos</option>
+            </select>
+          </>
         ) : (
           <input className="input flex-1" type="file" accept="video/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
         )}
-        <button className="btn-primary" disabled={loading}>{loading ? <Spinner /> : <Sparkles size={16} />} Importar vídeo</button>
+        <button className="btn-primary" disabled={loading || (mode === "live" && !liveValida)}>{loading ? <Spinner /> : <Sparkles size={16} />} {mode === "live" ? "Capturar live" : "Importar vídeo"}</button>
       </form>
+      {mode === "live" && (
+        <p className="mt-2 text-[11px] muted">
+          {liveValida ? "✓ Live HLS detectada. O worker vai capturar o trecho escolhido e gerar os cortes." : "Use o URL da sua própria live HLS (.m3u8). Não extraímos streams de plataformas protegidas."}
+        </p>
+      )}
       {error && <div className="mt-3"><Alert tone="error">{error}</Alert></div>}
       {mode === "url" && isYoutubeUrl(url) && (yt || ytLoading) && (
         <div className="mt-3 flex items-center gap-3 rounded-xl border p-3 text-left" style={{ borderColor: "var(--border)" }}>

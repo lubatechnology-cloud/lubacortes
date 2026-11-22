@@ -154,6 +154,8 @@ export async function runRenderJob(job: Job) {
     input: video,
     output: mainAbs,
     maxWidth: Number((savedStyle.maxWidth as number | undefined) ?? feat.maxWidth),
+    removeSilences: Boolean(savedStyle.removerSilencios),
+    silencioDb: Number(savedStyle.limiteSilencioDb ?? -35),
     start: clip.start_sec,
     end: clip.end_sec,
     formatId: clip.format,

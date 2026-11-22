@@ -17,6 +17,8 @@ export type RenderOptions = {
   focus?: FocusSample[];
   watermark?: boolean;
   maxWidth?: number;
+  removeSilences?: boolean;
+  silencioDb?: number;
   onProgress?: (p: FfmpegProgress) => void;
 };
 
@@ -84,6 +86,7 @@ export async function renderClip(opts: RenderOptions) {
       "-i", opts.input,
       "-t", duration.toFixed(3),
       "-vf", filter,
+      ...(opts.removeSilences ? ["-af", `silenceremove=start_periods=1:start_duration=0.2:start_threshold=${opts.silencioDb ?? -35}dB:stop_periods=-1:stop_duration=0.3:stop_threshold=${opts.silencioDb ?? -35}dB`] : []),
       "-c:v", "libx264",
       "-preset", "veryfast",
       "-crf", "23",
