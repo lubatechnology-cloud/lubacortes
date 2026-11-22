@@ -63,7 +63,7 @@ export async function runRenderJob(job: Job) {
   };
   const clip = get<ClipRow>("SELECT * FROM clips WHERE id=? AND user_id=?", payload.clipId, job.user_id);
   if (!clip) throw new Error("Corte não encontrado.");
-  const project = get<{ id: string; storage_path: string | null }>(
+  const project = get<{ id: string; storage_path: string | null; source_url: string | null }>(
     "SELECT id, storage_path, source_url FROM projects WHERE id=? AND user_id=?", clip.project_id, job.user_id,
   );
   if (!project?.storage_path) throw new Error("Vídeo de origem não encontrado.");
