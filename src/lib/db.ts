@@ -42,20 +42,29 @@ const PG_BRIDGE = `
 `;
 
 function pgQuery<T>(sql: string, params: unknown[]): { rows: T[]; rowCount: number } {
-  const raw = execFileSync(process.execPath, ["-e", PG_BRIDGE], {
-    input: JSON.stringify({
-      url: process.env.SUPABASE_URL,
-      key: process.env.SUPABASE_SERVICE_ROLE_KEY,
-      sql,
-      params,
-    }),
-    encoding: "utf8",
-    maxBuffer: 16 * 1024 * 1024,
-    timeout: 30_000,
-  });
-  const out = JSON.parse(raw) as { rows: T[]; rowCount: number; error?: string };
-  if (out.error) throw new Error(out.error);
-  return out;
+  let ultimo: unknown;
+  for (let tentativa = 0; tentativa < 3; tentativa++) {
+    try {
+      const raw = execFileSync(process.execPath, ["-e", PG_BRIDGE], {
+        input: JSON.stringify({
+          url: process.env.SUPABASE_URL,
+          key: process.env.SUPABASE_SERVICE_ROLE_KEY,
+          sql,
+          params,
+        }),
+        encoding: "utf8",
+        maxBuffer: 16 * 1024 * 1024,
+        timeout: 30_000,
+      });
+      const out = JSON.parse(raw) as { rows: T[]; rowCount: number; error?: string };
+      if (out.error) throw new Error(out.error);
+      return out;
+    } catch (e) {
+      ultimo = e;
+      if (tentativa < 2) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 600 * (tentativa + 1));
+    }
+  }
+  throw ultimo;
 }
 
 export function getDb(): Database.Database {

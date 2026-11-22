@@ -8,6 +8,17 @@ function base(): { url: string; key: string; bucket: string } | null {
   return { url: url.replace(/\/$/, ""), key, bucket };
 }
 
+async function comRetry<T>(fn: () => Promise<T>, tentativas = 3): Promise<T> {
+  let ultimo: unknown;
+  for (let i = 0; i < tentativas; i++) {
+    try { return await fn(); } catch (e) {
+      ultimo = e;
+      if (i < tentativas - 1) await new Promise((r) => setTimeout(r, 800 * (i + 1)));
+    }
+  }
+  throw ultimo;
+}
+
 function headers(key: string) {
   return { apikey: key, Authorization: `Bearer ${key}` };
 }
@@ -32,11 +43,11 @@ export async function criarUrlUpload(caminho: string): Promise<string> {
 export async function enviarRemoto(caminho: string, dados: Buffer, contentType = "application/octet-stream") {
   const c = base();
   if (!c) return false;
-  const res = await fetch(`${c.url}/storage/v1/object/${c.bucket}/${caminho}`, {
+  const res = await comRetry(() => fetch(`${c.url}/storage/v1/object/${c.bucket}/${caminho}`, {
     method: "POST",
     headers: { ...headers(c.key), "Content-Type": contentType, "x-upsert": "true" },
     body: new Uint8Array(dados),
-  });
+  }));
   return res.ok;
 }
 
@@ -44,9 +55,9 @@ export async function enviarRemoto(caminho: string, dados: Buffer, contentType =
 export async function descarregarRemoto(caminho: string): Promise<Buffer | null> {
   const c = base();
   if (!c) return null;
-  const res = await fetch(`${c.url}/storage/v1/object/${c.bucket}/${caminho}`, {
+  const res = await comRetry(() => fetch(`${c.url}/storage/v1/object/${c.bucket}/${caminho}`, {
     headers: headers(c.key),
-  });
+  }));
   if (!res.ok) return null;
   return Buffer.from(await res.arrayBuffer());
 }
