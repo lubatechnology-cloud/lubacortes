@@ -23,7 +23,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      - run: npm ci --include=dev
       - name: Processar tarefas de vídeo
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
