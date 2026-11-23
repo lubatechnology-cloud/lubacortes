@@ -13,6 +13,9 @@ jobs:
   process:
     runs-on: ubuntu-latest
     timeout-minutes: 50
+    env:
+      npm_config_onnxruntime_node_install_cuda: skip
+      npm_config_yes: "true"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
