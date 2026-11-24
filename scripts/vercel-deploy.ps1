@@ -27,6 +27,7 @@ $names = @(
 foreach ($name in $names) {
   $value = ""
   if ($values.ContainsKey($name)) { $value = $values[$name] }
+  if (-not $value -and $name -eq "APP_URL") { $value = "https://lubacortes.vercel.app" }
   if (-not $value -and $name -eq "APP_SECRET") { $value = -join ((48..57) + (97..122) | Get-Random -Count 48 | ForEach-Object { [char]$_ }) }
   if (-not $value -and $name -eq "PAYMENT_TEST_CONFIRM_TOKEN") { $value = -join ((48..57) + (97..122) | Get-Random -Count 32 | ForEach-Object { [char]$_ }) }
   if (-not $value -and $name -eq "PAYMENT_WEBHOOK_SECRET") { $value = -join ((48..57) + (97..122) | Get-Random -Count 32 | ForEach-Object { [char]$_ }) }

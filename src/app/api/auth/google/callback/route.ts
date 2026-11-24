@@ -4,7 +4,6 @@ import { NextResponse } from "next/server";
 import { createSession, hashPassword, setSessionCookie } from "@/lib/auth";
 import { get, nowIso, run, uid } from "@/lib/db";
 import { ApiError, fail } from "@/lib/http";
-import { config } from "@/lib/config";
 import { exchangeGoogleCode, fetchGoogleProfile, googleEnabled } from "@/lib/google";
 import { clientIp } from "@/lib/auth";
 
@@ -89,7 +88,8 @@ export async function GET(req: Request) {
 
     const session = createSession(user.id, clientIp(req), req.headers.get("user-agent") ?? undefined);
     await setSessionCookie(session.token, session.expiresAt);
-    return NextResponse.redirect(new URL(next, config.appUrl));
+    // Usa a origem do próprio pedido: não depende de APP_URL estar configurado.
+    return NextResponse.redirect(new URL(next, new URL(req.url).origin));
   } catch (e) {
     return fail(e);
   }

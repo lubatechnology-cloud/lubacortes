@@ -20,7 +20,7 @@ const root = process.cwd();
 
 export const config = {
   root,
-  appUrl: str("APP_URL", "http://localhost:3000"),
+  appUrl: str("APP_URL") || (process.env.VERCEL === "1" ? "https://lubacortes.vercel.app" : "http://localhost:3000"),
   secret: str("APP_SECRET", "dev-secret-change-me-immediately"),
   databasePath: path.resolve(root, str("DATABASE_PATH", "./data/lubacortes.db")),
   storageDir: path.resolve(root, str("STORAGE_DIR", "./storage")),
