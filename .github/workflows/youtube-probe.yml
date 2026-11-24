@@ -35,7 +35,7 @@ jobs:
         run: curl -s --max-time 15 https://ipinfo.io/json || true
       - name: Extrair metadados com yt-dlp
         run: |
-          BIN=$(node -e "process.stdout.write(require('youtube-dl-exec').execPath)")
+          BIN=$(find node_modules/youtube-dl-exec/bin -maxdepth 1 -type f | head -1)
           echo "binario: $BIN"
           chmod +x "$BIN" || true
           "$BIN" --dump-single-json --skip-download --no-warnings \
