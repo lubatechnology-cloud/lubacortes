@@ -2,7 +2,7 @@
 # 1. Criar token em https://vercel.com/account/tokens
 # 2. Colar o token em vercel-token.txt (na raiz) — ficheiro ignorado pelo git
 # 3. Executar: powershell -ExecutionPolicy Bypass -File scripts/vercel-deploy.ps1
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 $root = (Get-Location).Path
 $tokenFile = Join-Path $root "vercel-token.txt"
 if (-not (Test-Path $tokenFile)) { throw "Falta vercel-token.txt com o token da Vercel" }
@@ -30,8 +30,9 @@ foreach ($name in $names) {
   if (-not $value -and $name -eq "APP_SECRET") { $value = -join ((48..57) + (97..122) | Get-Random -Count 48 | ForEach-Object { [char]$_ }) }
   if (-not $value -and $name -eq "PAYMENT_TEST_CONFIRM_TOKEN") { $value = -join ((48..57) + (97..122) | Get-Random -Count 32 | ForEach-Object { [char]$_ }) }
   if (-not $value -and $name -eq "PAYMENT_WEBHOOK_SECRET") { $value = -join ((48..57) + (97..122) | Get-Random -Count 32 | ForEach-Object { [char]$_ }) }
-  if (-not $value) { $value = "" }
-  $value | & vercel.cmd env add $name production --force 2>&1 | Out-Null
+  # Valores vazios não são enviados: não apagam configurações existentes na Vercel.
+  if (-not $value) { continue }
+  $value | & vercel.cmd env add $name production --force 2>$null | Out-Null
   Write-Output ("variável " + $name + " configurada")
 }
 

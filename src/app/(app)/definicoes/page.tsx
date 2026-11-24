@@ -8,7 +8,7 @@ import { UserRound, ShieldCheck, Monitor } from "lucide-react";
 type Session = { id: string; ip: string | null; user_agent: string | null; created_at: string; expires_at: string };
 
 export default function SettingsPage() {
-  const [profile, setProfile] = useState<{ name: string; email: string; email_verified_at: string | null; phone?: string | null; notify_email?: number; notify_whatsapp?: number } | null>(null);
+  const [profile, setProfile] = useState<{ name: string; email: string; email_verified_at: string | null; phone?: string | null; notify_email?: number; notify_whatsapp?: number; google_email?: string | null; avatar_url?: string | null } | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -58,6 +58,7 @@ export default function SettingsPage() {
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="accent-blue-500" checked={notifyWhatsapp} onChange={(e) => setNotifyWhatsapp(e.target.checked)} /> Avisar por WhatsApp (requer credenciais oficiais)</label>
           </div>
           <p className="mt-3 text-xs muted">E-mail: {profile.email_verified_at ? "verificado ✓" : "por verificar"}</p>
+          {profile.google_email && <p className="mt-1 text-xs text-emerald-500">Ligado ao Google: {profile.google_email}</p>}
           <button className="btn-primary mt-5" onClick={save} disabled={busy}>{busy ? <Spinner /> : "Guardar alterações"}</button>
         </div>
         <div className="card p-6">
