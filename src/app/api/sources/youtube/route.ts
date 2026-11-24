@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     const info = await infoYouTube(url);
     return ok({
       info,
-      aviso: "O YouTube pode bloquear o download a partir dos nossos servidores. Para garantir os seus cortes, carregue o ficheiro do vídeo — os formatos, legendas e edição funcionam igual.",
+      aviso: "O download e a análise são feitos na nuvem. Se o YouTube bloquear algum vídeo, convidamos a carregar o ficheiro — os formatos, legendas e edição funcionam igual.",
     });
   } catch (e) { return fail(e); }
 }
