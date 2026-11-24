@@ -27,16 +27,17 @@ jobs:
           echo "deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/cloudflare-client.list
           sudo apt-get update -qq
           sudo apt-get install -y -qq cloudflare-warp
-          sudo warp-cli registration new || true
-          sudo warp-cli connect || true
+          sudo warp-cli --accept-tos registration new || true
+          sudo warp-cli --accept-tos connect || true
           sleep 8
           sudo warp-cli status || true
       - name: IP depois
         run: curl -s --max-time 15 https://ipinfo.io/json || true
       - name: Extrair metadados com yt-dlp
         run: |
-          BIN=node_modules/youtube-dl-exec/bin/yt-dlp.exe
-          chmod +x "$BIN"
+          BIN=$(node -e "process.stdout.write(require('youtube-dl-exec').execPath)")
+          echo "binario: $BIN"
+          chmod +x "$BIN" || true
           "$BIN" --dump-single-json --skip-download --no-warnings \
             --extractor-args "youtube:player_client=web_safari,android,tv_embedded,ios" \
             "https://www.youtube.com/watch?v=FqncTKI5gd8" 2>&1 | head -c 1200 || true
