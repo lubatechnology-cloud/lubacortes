@@ -76,6 +76,11 @@ export const config = {
     smtpUrl: str("SMTP_URL"),
     from: str("MAIL_FROM", "noreply@lubacortes.local"),
   },
+  google: {
+    clientId: str("GOOGLE_CLIENT_ID"),
+    clientSecret: str("GOOGLE_CLIENT_SECRET"),
+    redirectUri: str("GOOGLE_REDIRECT_URI"),
+  },
 };
 
 export const DEFAULT_SETTINGS: Record<string, unknown> = {

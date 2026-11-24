@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { post } from "@/lib/client/api";
 import { Alert, Spinner } from "@/components/ui";
+import { GoogleButton } from "@/components/google-button";
 
 function RegisterInner() {
   const router = useRouter();
@@ -34,6 +35,7 @@ function RegisterInner() {
         {error && <Alert tone="error">{error}</Alert>}
         <button className="btn-primary w-full" disabled={loading}>{loading ? <Spinner /> : "Criar conta"}</button>
       </form>
+      <GoogleButton next={params.get("next") || "/dashboard"} label="Registar com Google" />
       <p className="mt-5 text-center text-xs muted">Já tem conta? <Link href="/login" className="text-blue-500 hover:underline">Entrar</Link></p>
     </div>
   );

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { post } from "@/lib/client/api";
 import { Alert, Spinner } from "@/components/ui";
+import { GoogleButton } from "@/components/google-button";
 
 function LoginInner() {
   const router = useRouter();
@@ -36,6 +37,7 @@ function LoginInner() {
         {error && <Alert tone="error">{error}</Alert>}
         <button className="btn-primary w-full" disabled={loading}>{loading ? <Spinner /> : "Entrar"}</button>
       </form>
+      <GoogleButton next={params.get("next") || "/dashboard"} />
       <div className="mt-5 flex justify-between text-xs muted">
         <Link href="/esqueci-senha" className="text-blue-500 hover:underline">Esqueci a palavra-passe</Link>
         <Link href="/registar" className="text-blue-500 hover:underline">Criar conta</Link>

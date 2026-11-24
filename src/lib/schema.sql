@@ -25,9 +25,13 @@ CREATE TABLE IF NOT EXISTS users (
   plan_period_end TEXT,
   plan_status TEXT NOT NULL DEFAULT 'active',
   auto_renew INTEGER NOT NULL DEFAULT 0,
+  google_sub TEXT,
+  google_email TEXT,
+  avatar_url TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_sub ON users(google_sub) WHERE google_sub IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS sessions (
   id TEXT PRIMARY KEY,

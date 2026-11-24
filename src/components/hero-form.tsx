@@ -98,7 +98,7 @@ export function HeroForm({ authenticated }: { authenticated: boolean }) {
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-bold">{yt?.titulo ?? "A identificar vídeo…"}</p>
             <p className="text-[11px] muted">{yt?.autor ?? "YouTube"}</p>
-            <p className="mt-1 text-[11px] muted">Encontrámos o vídeo. O download é feito pelo seu servidor; use apenas conteúdos que possui ou tem licença para processar.</p>
+            <p className="mt-1 text-[11px] muted">Encontrámos o vídeo. Carregue o ficheiro para garantir o processamento — é só arrastar e largar. Use apenas conteúdos que possui ou tem licença para processar.</p>
           </div>
           <div className="flex shrink-0 flex-col gap-2">
             <button className="btn-primary !px-3 !py-2 !text-xs" onClick={async () => {
@@ -108,7 +108,7 @@ export function HeroForm({ authenticated }: { authenticated: boolean }) {
                 const r = await post<{ project: { id: string } }>("/api/sources/youtube/import", { url });
                 router.push(`/projecto/${r.project.id}`);
               } catch (e) { setError((e as Error).message); } finally { setLoading(false); }
-            }} disabled={loading}>{loading ? <Spinner /> : "Cortar este vídeo"}</button>
+            }} disabled={loading}>{loading ? <Spinner /> : "Tentar importar"}</button>
             <button className="btn-ghost !px-3 !py-1 !text-[10px]" onClick={() => setMode("file")}>Carregar ficheiro</button>
           </div>
         </div>

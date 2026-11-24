@@ -124,6 +124,10 @@ function migrate(db: Database.Database) {
   addColumnIfMissing(db, "users", "phone", "TEXT");
   addColumnIfMissing(db, "users", "notify_email", "INTEGER NOT NULL DEFAULT 1");
   addColumnIfMissing(db, "users", "notify_whatsapp", "INTEGER NOT NULL DEFAULT 0");
+  addColumnIfMissing(db, "users", "google_sub", "TEXT");
+  addColumnIfMissing(db, "users", "google_email", "TEXT");
+  addColumnIfMissing(db, "users", "avatar_url", "TEXT");
+  db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_sub ON users(google_sub) WHERE google_sub IS NOT NULL");
   addColumnIfMissing(db, "projects", "notified_at", "TEXT");
   addColumnIfMissing(db, "projects", "remote_path", "TEXT");
   addColumnIfMissing(db, "clips", "remote_path", "TEXT");

@@ -48,10 +48,10 @@ async function extrair(url: string, opcoes: Record<string, unknown>) {
       if (!ehErroBot(msg)) break;
     }
   }
+  console.warn("[youtube] detalhes da falha:", erros.slice(-2).join(" | "));
   throw new Error(
-    `O YouTube bloqueou a extração (verificação de bot). ` +
-    `Tente novamente mais tarde ou configure YOUTUBE_COOKIES com os cookies da sua própria conta. ` +
-    erros.slice(-2).join(" | "),
+    "Não foi possível importar este vídeo do YouTube a partir dos nossos servidores. " +
+    "Carregue o ficheiro do vídeo para continuar — é só arrastar e largar.",
   );
 }
 

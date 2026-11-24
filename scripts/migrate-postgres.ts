@@ -29,10 +29,14 @@ async function main() {
     ["users", "plan_period_start TEXT"], ["users", "plan_period_end TEXT"],
     ["users", "plan_status TEXT NOT NULL DEFAULT 'active'"],
     ["users", "auto_renew INTEGER NOT NULL DEFAULT 0"],
+    ["users", "google_sub TEXT"],
+    ["users", "google_email TEXT"],
+    ["users", "avatar_url TEXT"],
   ];
   for (const [table, def] of alterations) {
     await c.query(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS ${def}`);
   }
+  await c.query("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_sub ON users(google_sub) WHERE google_sub IS NOT NULL");
   console.log("Migração de colunas concluída.");
   await c.end();
 }
