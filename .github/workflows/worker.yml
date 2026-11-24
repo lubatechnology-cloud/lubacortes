@@ -24,6 +24,32 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --include=dev
+      - name: Preparar saída de rede para o YouTube (WARP com rotação)
+        run: |
+          set +e
+          curl -fsSL https://pkg.cloudflareclient.com/pubkey.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/cloudflare-client.list
+          sudo apt-get update -qq && sudo apt-get install -y -qq cloudflare-warp
+          sudo warp-cli --accept-tos registration new >/dev/null 2>&1
+          BIN=$(find node_modules/youtube-dl-exec/bin -maxdepth 1 -type f | head -1)
+          chmod +x "$BIN"
+          OK=0
+          for i in 1 2 3 4 5 6; do
+            sudo warp-cli disconnect >/dev/null 2>&1
+            sleep 2
+            sudo warp-cli --accept-tos connect >/dev/null 2>&1
+            sleep 6
+            IP=$(curl -s --max-time 10 https://ipinfo.io/json | grep -o '"ip": "[^"]*"' | head -1)
+            echo "[warp] tentativa $i: $IP"
+            if "$BIN" --dump-single-json --skip-download --no-warnings \
+                --extractor-args "youtube:player_client=web_safari,android,tv_embedded,ios" \
+                "https://www.youtube.com/watch?v=FqncTKI5gd8" >/dev/null 2>&1; then
+              echo "[warp] IP aprovado pelo YouTube: $IP"
+              OK=1
+              break
+            fi
+          done
+          if [ "$OK" -ne 1 ]; then echo "[warp] nenhum IP aprovado; o worker continua sem WARP"; fi
       - name: Processar tarefas de vídeo
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
@@ -46,13 +72,4 @@ jobs:
           GHA_MAX_JOBS: "8"
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg fonts-dejavu-core
-          # O YouTube bloqueia IPs de datacenters. O Cloudflare WARP dá uma saída
-          # de rede diferente, que passa no bot-check para downloads públicos.
-          curl -fsSL https://pkg.cloudflareclient.com/pubkey.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg
-          echo "deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/cloudflare-client.list
-          sudo apt-get update -qq && sudo apt-get install -y -qq cloudflare-warp
-          sudo warp-cli --accept-tos registration new || true
-          sudo warp-cli --accept-tos connect || true
-          sleep 8
-          echo "[worker] saída de rede:" && (curl -s --max-time 10 https://ipinfo.io/json || true)
           npm run worker:once
