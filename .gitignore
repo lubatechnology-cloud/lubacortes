@@ -12,6 +12,7 @@ storage/
 keys.txt
 vercel-token.txt
 .github-token.txt
+youtube-cookies.txt
 scripts/save-keys.ps1
 npm-debug.log*
 .DS_Store

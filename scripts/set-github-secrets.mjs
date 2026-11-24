@@ -47,6 +47,7 @@ const names = [
   "GROQ_TRANSCRIBE_MODEL", "GROQ_CHAT_MODEL", "GROQ_BASE_URL", "AUTOFOCUS_PROVIDER",
   "PAYMENT_MODE", "PAYMENT_REFERENCE_ENABLED", "PAYMENT_EXPRESS_ENABLED",
   "PAYMENT_TRANSFER_IBAN", "PAYMENT_TRANSFER_BANK", "PAYMENT_TRANSFER_ACCOUNT_NAME",
+  "YOUTUBE_COOKIES",
 ];
 
 const keys = {};
@@ -57,7 +58,10 @@ for (const line of fs.readFileSync("keys.txt", "utf8").split(/\r?\n/)) {
 
 let ok = 0;
 for (const name of names) {
-  const value = keys[name] || defaults[name] || "";
+  let value = keys[name] || defaults[name] || "";
+  if (name === "YOUTUBE_COOKIES" && fs.existsSync("youtube-cookies.txt")) {
+    value = fs.readFileSync("youtube-cookies.txt", "utf8");
+  }
   const encrypted = sodium.crypto_box_seal(
     Buffer.from(value, "utf8"),
     new Uint8Array(Buffer.from(pub.key, "base64")),
