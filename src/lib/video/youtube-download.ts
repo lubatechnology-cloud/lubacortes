@@ -12,7 +12,49 @@ export type YouTubeDownload = {
   duracao: number;
 };
 
-/** Descarga um vídeo do YouTube num formato directo (MP4) e envia para o Storage. */
+const CLIENTES = [
+  ["web_safari", "android"],
+  ["android"],
+  ["tv_embedded"],
+  ["ios"],
+];
+
+function caminhoCookies(): string | null {
+  const conteudo = process.env.YOUTUBE_COOKIES;
+  if (!conteudo || !conteudo.includes("Netscape HTTP Cookie File")) return null;
+  const rel = ".system/youtube-cookies.txt";
+  writeStorage(rel, Buffer.from(conteudo, "utf8"));
+  return storagePath(rel);
+}
+
+function ehErroBot(mensagem: string): boolean {
+  return /bot|sign in to confirm|not a bot|captcha/i.test(mensagem);
+}
+
+/** Tenta vários clientes públicos do YouTube; usa cookies próprios apenas se fornecidos. */
+async function extrair(url: string, opcoes: Record<string, unknown>) {
+  const erros: string[] = [];
+  const cookies = caminhoCookies();
+  for (const clientes of CLIENTES) {
+    try {
+      return await ytdlp(url, {
+        ...opcoes,
+        extractorArgs: [`youtube:player_client=${clientes.join(",")}`],
+        ...(cookies ? { cookies } : {}),
+      });
+    } catch (e) {
+      const msg = (e as Error).message ?? String(e);
+      erros.push(`${clientes.join("+")}: ${msg.slice(0, 200)}`);
+      if (!ehErroBot(msg)) break;
+    }
+  }
+  throw new Error(
+    `O YouTube bloqueou a extração (verificação de bot). ` +
+    `Tente novamente mais tarde ou configure YOUTUBE_COOKIES com os cookies da sua própria conta. ` +
+    erros.slice(-2).join(" | "),
+  );
+}
+
 export async function baixarYouTube(
   url: string,
   userId: string,
@@ -22,7 +64,7 @@ export async function baixarYouTube(
   const abs = storagePath(rel);
   fs.mkdirSync(path.dirname(abs), { recursive: true });
 
-  const info = await ytdlp(url, {
+  const info = await extrair(url, {
     dumpSingleJson: true,
     noWarnings: true,
     skipDownload: true,
@@ -30,7 +72,7 @@ export async function baixarYouTube(
     jsRuntimes: "node",
   }) as { title?: string; duration?: number };
 
-  await ytdlp(url, {
+  await extrair(url, {
     output: abs,
     format: "bv*[height<=1080][ext=mp4]+ba[ext=m4a]/b[height<=1080][ext=mp4]/best[ext=mp4]/best",
     mergeOutputFormat: "mp4",
