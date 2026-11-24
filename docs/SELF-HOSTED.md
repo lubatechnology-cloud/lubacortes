@@ -45,3 +45,10 @@ docker run -p 5000:5000 serengil/deepface:latest
 ```
 
 Estes serviços podem correr no mesmo host do worker. O Groq continua disponível como alternativa gratuita sem GPU.
+
+## YouTube — verificação de bot
+O adaptador `yt-dlp` tenta vários clientes públicos (`web_safari`, `android`, `tv_embedded`, `ios`).
+Se o YouTube continuar a pedir "Sign in to confirm you're not a bot", configure o secret
+`YOUTUBE_COOKIES` no GitHub Actions com o conteúdo de um ficheiro Netscape exportado da **sua própria**
+conta (`Get cookies.txt LOCALLY`). O worker passa esse ficheiro ao yt-dlp via `--cookies`.
+Use apenas cookies da sua conta e para vídeos que possui ou tem licença para processar.
