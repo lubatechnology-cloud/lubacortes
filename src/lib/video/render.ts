@@ -17,6 +17,8 @@ export type RenderOptions = {
   focus?: FocusSample[];
   watermark?: boolean;
   maxWidth?: number;
+  fadeEdges?: boolean;
+  normalizeAudio?: boolean;
   removeSilences?: boolean;
   silencioDb?: number;
   onProgress?: (p: FfmpegProgress) => void;
@@ -72,6 +74,11 @@ export function buildFilterChain(opts: RenderOptions): string {
     filters.push(`drawtext=fontfile='${font}':text='Lubacortes':fontcolor=white@0.42:fontsize=44:x=(w-text_w)/2:y=h-text_h-120`);
   }
   filters.push("setsar=1");
+  if (opts.fadeEdges !== false) {
+    const dur = Math.max(0.5, opts.end - opts.start);
+    const fade = Math.min(0.25, dur / 8);
+    filters.push(`fade=t=in:st=0:d=${fade.toFixed(2)}`, `fade=t=out:st=${(dur - fade).toFixed(2)}:d=${fade.toFixed(2)}`);
+  }
   return filters.join(",");
 }
 
@@ -80,16 +87,23 @@ export async function renderClip(opts: RenderOptions) {
   fs.mkdirSync(path.dirname(opts.output), { recursive: true });
   const duration = Math.max(0.5, opts.end - opts.start);
   const filter = buildFilterChain(opts);
+  const audio: string[] = [];
+  if (opts.removeSilences) {
+    audio.push(`silenceremove=start_periods=1:start_duration=0.2:start_threshold=${opts.silencioDb ?? -35}dB:stop_periods=-1:stop_duration=0.3:stop_threshold=${opts.silencioDb ?? -35}dB`);
+  }
+  if (opts.normalizeAudio !== false) {
+    audio.push("highpass=f=80", "loudnorm=I=-16:TP=-1.5:LRA=11");
+  }
   await runFfmpeg(
     [
       "-ss", opts.start.toFixed(3),
       "-i", opts.input,
       "-t", duration.toFixed(3),
       "-vf", filter,
-      ...(opts.removeSilences ? ["-af", `silenceremove=start_periods=1:start_duration=0.2:start_threshold=${opts.silencioDb ?? -35}dB:stop_periods=-1:stop_duration=0.3:stop_threshold=${opts.silencioDb ?? -35}dB`] : []),
+      ...(audio.length ? ["-af", audio.join(",")] : []),
       "-c:v", "libx264",
-      "-preset", "veryfast",
-      "-crf", "23",
+      "-preset", "fast",
+      "-crf", "20",
       "-pix_fmt", "yuv420p",
       "-profile:v", "high",
       "-level", "4.1",

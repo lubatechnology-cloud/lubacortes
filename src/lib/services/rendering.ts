@@ -3,7 +3,7 @@ import fs from "node:fs";
 import { all, get, nowIso, run, uid } from "../db";
 import { progress } from "../queue";
 import { statStorage, storagePath } from "../storage";
-import { buildAss, DEFAULT_SUBTITLE_STYLE, type SubtitleStyle } from "../video/subtitles";
+import { buildAss, DEFAULT_SUBTITLE_STYLE, STYLE_PRESETS, type SubtitleStyle } from "../video/subtitles";
 import { extractThumbnail, probe } from "../video/ffmpeg";
 import { renderClip } from "../video/render";
 import { planFocus } from "../video/focus";
@@ -32,29 +32,37 @@ type ClipRow = {
   focus_y: number | null;
 };
 
-type SubtitleSegment = { start: number; end: number; text: string; source?: string };
+type SubtitleSegment = { start: number; end: number; text: string; source?: string; words?: { start: number; end: number; text: string }[] };
 
 function saveSubtitles(clipId: string, segments: SubtitleSegment[]) {
   run("DELETE FROM subtitle_segments WHERE clip_id=?", clipId);
   segments.forEach((s, i) => {
     run(
-      "INSERT INTO subtitle_segments (id,clip_id,idx,start_sec,end_sec,source_text,display_text,created_at) VALUES (?,?,?,?,?,?,?,?)",
-      uid("sub_"), clipId, i, s.start, s.end, s.source ?? s.text, s.text, nowIso(),
+      "INSERT INTO subtitle_segments (id,clip_id,idx,start_sec,end_sec,source_text,display_text,words_json,created_at) VALUES (?,?,?,?,?,?,?,?,?)",
+      uid("sub_"), clipId, i, s.start, s.end, s.source ?? s.text, s.text,
+      s.words?.length ? JSON.stringify(s.words) : "", nowIso(),
     );
   });
 }
 
 function loadSubtitles(clipId: string): SubtitleSegment[] {
-  const rows = all<{ start_sec: number; end_sec: number; display_text: string }>(
-    "SELECT start_sec,end_sec,display_text FROM subtitle_segments WHERE clip_id=? ORDER BY idx", clipId,
+  const rows = all<{ start_sec: number; end_sec: number; display_text: string; words_json: string | null }>(
+    "SELECT start_sec,end_sec,display_text,words_json FROM subtitle_segments WHERE clip_id=? ORDER BY idx", clipId,
   );
-  return rows.map((r) => ({ start: r.start_sec, end: r.end_sec, text: r.display_text }));
+  return rows.map((r) => {
+    let words: SubtitleSegment["words"];
+    try {
+      const raw = r.words_json ? JSON.parse(r.words_json) as SubtitleSegment["words"] : [];
+      if (raw?.length) words = raw;
+    } catch { /* legenda antiga sem palavras */ }
+    return { start: r.start_sec, end: r.end_sec, text: r.display_text, words };
+  });
 }
 
 export async function runRenderJob(job: Job) {
   const payload = JSON.parse(job.payload_json) as {
     clipId: string;
-    segments?: { start: number; end: number; text: string }[];
+    segments?: { start: number; end: number; text: string; words?: { start: number; end: number; text: string }[] }[];
     language?: string;
     subtitleLang?: string;
     style?: Partial<SubtitleStyle>;
@@ -81,11 +89,19 @@ export async function runRenderJob(job: Job) {
   progress(job.id, 5, "a_preparar_legendas");
 
   const savedStyle = JSON.parse(clip.style_json || "{}") as Record<string, unknown>;
+  const preset = STYLE_PRESETS[String(savedStyle.stylePreset ?? savedStyle.template ?? "opus")] ?? {};
+  const visuais = new Set(["font", "fontSize", "primaryColor", "highlightColor", "position", "bold", "outline", "karaoke", "animation"]);
+  // Ao voltar a renderizar um corte antigo, actualizamos o acabamento visual.
+  const estiloGuardado = payload.regenerate
+    ? Object.fromEntries(Object.entries(savedStyle).filter(([k]) => !visuais.has(k)))
+    : savedStyle;
   const style: SubtitleStyle = {
     ...DEFAULT_SUBTITLE_STYLE,
-    ...savedStyle,
+    ...preset,
+    ...estiloGuardado,
     ...(payload.style ?? {}),
   } as SubtitleStyle;
+  if (!style.hookTitle && String(style.template ?? "opus") !== "minimo") style.hookTitle = clip.title;
   const autofocusMode = ((payload.style as Record<string, unknown> | undefined)?.autofocusMode ??
     savedStyle.autofocusMode ?? "center") as "center" | "model" | "manual";
 
@@ -117,6 +133,13 @@ export async function runRenderJob(job: Job) {
         end: Math.min(clip.end_sec - clip.start_sec, seg.end - clip.start_sec),
         text,
         source: seg.text,
+        words: seg.words?.length
+          ? seg.words.map((w) => ({
+              start: Math.max(0, w.start - clip.start_sec),
+              end: Math.min(clip.end_sec - clip.start_sec, w.end - clip.start_sec),
+              text: w.text,
+            }))
+          : undefined,
       });
     }
     saveSubtitles(clip.id, translated);

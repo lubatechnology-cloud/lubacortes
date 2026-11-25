@@ -5,7 +5,9 @@ import { config } from "../config";
 import { probe, runFfmpeg } from "../video/ffmpeg";
 import { transcreverSelfHost } from "./selfhost";
 
-export type Segment = { start: number; end: number; text: string };
+export type Word = { start: number; end: number; text: string };
+
+export type Segment = { start: number; end: number; text: string; words?: Word[] };
 
 export type TranscriptionResult = {
   segments: Segment[];
@@ -34,12 +36,21 @@ async function callTranscriptionApi(filePath: string, cfg: RemoteConfig) {
   form.append("model", cfg.model);
   form.append("response_format", "verbose_json");
   form.append("timestamp_granularities[]", "segment");
-  const res = await fetch(`${cfg.baseUrl.replace(/\/$/, "")}/audio/transcriptions`, {
+  form.append("timestamp_granularities[]", "word");
+  const url = `${cfg.baseUrl.replace(/\/$/, "")}/audio/transcriptions`;
+  const request = () => fetch(url, {
     method: "POST",
     headers: { Authorization: `Bearer ${cfg.apiKey}` },
     body: form,
     signal: AbortSignal.timeout(180_000),
   });
+  let res = await request();
+  if (res.status === 400) {
+    // Alguns provedores aceitam só granularidade de segmento.
+    form.delete("timestamp_granularities[]");
+    form.append("timestamp_granularities[]", "segment");
+    res = await request();
+  }
   if (!res.ok) {
     const body = await res.text();
     if (res.status === 429) {
@@ -51,8 +62,19 @@ async function callTranscriptionApi(filePath: string, cfg: RemoteConfig) {
   return (await res.json()) as {
     language?: string;
     segments?: { start: number; end: number; text: string }[];
+    words?: { start: number; end: number; text: string; word?: string }[];
     text?: string;
   };
+}
+
+function normalizeWords(raw: { start: number; end: number; text: string; word?: string }[] | undefined, offset = 0): Word[] {
+  return (raw ?? [])
+    .map((w) => ({
+      start: Number(w.start) + offset,
+      end: Number(w.end ?? w.start) + offset,
+      text: String(w.word ?? w.text ?? "").trim(),
+    }))
+    .filter((w) => w.text.length > 0);
 }
 
 /**
@@ -67,12 +89,16 @@ export async function transcribeRemote(audioPath: string, cfg: RemoteConfig): Pr
 
   if (size <= maxBytes || duration <= chunk || chunk <= 0) {
     const data = await callTranscriptionApi(audioPath, cfg);
+    const palavras = normalizeWords(data.words);
     const segments = (data.segments ?? []).map((s) => ({
       start: Number(s.start),
       end: Number(s.end),
       text: String(s.text ?? "").trim(),
+      words: palavras.length
+        ? palavras.filter((w) => w.start >= Number(s.start) - 0.05 && w.start <= Number(s.end) + 0.05)
+        : undefined,
     }));
-    if (!segments.length && data.text) segments.push({ start: 0, end: 0, text: data.text.trim() });
+    if (!segments.length && data.text) segments.push({ start: 0, end: 0, text: data.text.trim(), words: undefined });
     return { segments, language: data.language ?? "desconhecido", provider: cfg.name };
   }
 
@@ -93,10 +119,16 @@ export async function transcribeRemote(audioPath: string, cfg: RemoteConfig): Pr
     for (const part of parts) {
       const data = await callTranscriptionApi(part.file, cfg);
       if (data.language && language === "desconhecido") language = data.language;
+      const palavras = normalizeWords(data.words, part.offset);
       for (const s of data.segments ?? []) {
         const text = String(s.text ?? "").trim();
         if (!text) continue;
-        segments.push({ start: Number(s.start) + part.offset, end: Number(s.end) + part.offset, text });
+        const ini = Number(s.start) + part.offset;
+        const fim = Number(s.end) + part.offset;
+        segments.push({
+          start: ini, end: fim, text,
+          words: palavras.length ? palavras.filter((w) => w.start >= ini - 0.05 && w.start <= fim + 0.05) : undefined,
+        });
       }
     }
     return {
@@ -191,13 +223,17 @@ class LocalWhisperProvider implements TranscriptionProvider {
       text: string;
       chunks?: { timestamp: [number | null, number | null]; text: string }[];
     };
-    const segments: Segment[] = (output.chunks ?? [])
+    const chunks = (output.chunks ?? [])
       .map((c) => ({
         start: Number(c.timestamp?.[0] ?? 0),
         end: Number(c.timestamp?.[1] ?? 0),
         text: String(c.text ?? "").trim(),
       }))
       .filter((s) => s.text.length > 0);
+    const segments: Segment[] = chunks.map((c) => ({
+      ...c,
+      words: [{ start: c.start, end: c.end, text: c.text }],
+    }));
     return {
       segments,
       language: "auto",

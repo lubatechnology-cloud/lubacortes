@@ -165,6 +165,7 @@ CREATE TABLE IF NOT EXISTS subtitle_segments (
   end_sec REAL NOT NULL,
   source_text TEXT NOT NULL DEFAULT '',
   display_text TEXT NOT NULL DEFAULT '',
+  words_json TEXT NOT NULL DEFAULT '',
   created_at TEXT NOT NULL,
   UNIQUE(clip_id, idx)
 );

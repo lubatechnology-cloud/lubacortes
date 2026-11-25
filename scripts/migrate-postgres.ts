@@ -29,6 +29,7 @@ async function main() {
     ["users", "plan_period_start TEXT"], ["users", "plan_period_end TEXT"],
     ["users", "plan_status TEXT NOT NULL DEFAULT 'active'"],
     ["users", "auto_renew INTEGER NOT NULL DEFAULT 0"],
+    ["subtitle_segments", "words_json TEXT NOT NULL DEFAULT ''"],
     ["users", "google_sub TEXT"],
     ["users", "google_email TEXT"],
     ["users", "avatar_url TEXT"],

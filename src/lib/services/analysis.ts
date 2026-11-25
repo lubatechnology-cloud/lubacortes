@@ -147,7 +147,7 @@ export async function runAnalyzeJob(job: Job) {
     ...DEFAULT_SUBTITLE_STYLE,
     ...(payload.style ?? {}),
     autofocusMode: payload.autofocusMode ?? "center",
-    stylePreset: payload.stylePreset ?? "padrao",
+    stylePreset: payload.stylePreset ?? "opus",
     groupFocus: Boolean(payload.groupFocus),
   };
   const sug = suggestions(formatId, moments[0].title);

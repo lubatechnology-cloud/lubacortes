@@ -25,10 +25,10 @@ describe("Destaque de palavra nas legendas", () => {
   it("aplica cor de destaque à palavra pedida", () => {
     const ass = buildAss(
       [{ start: 0, end: 2, text: "Este é o melhor momento" }],
-      { ...DEFAULT_SUBTITLE_STYLE, palavraDestacada: "melhor" },
+      { ...DEFAULT_SUBTITLE_STYLE, karaoke: false, highlightColor: "#22D3EE", palavraDestacada: "melhor" },
       0,
     );
-    expect(ass).toContain("\\c&H0022D3EE");
+    expect(ass).toContain("\\c&H00EED322");
     expect(ass).toContain("melhor");
   });
 });
