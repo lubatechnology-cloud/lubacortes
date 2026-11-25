@@ -1,5 +1,8 @@
-import { all, get, nowIso, run, setting, uid } from "../db";
+import { all, get, nowIso, run, uid } from "../db";
 import { ApiError } from "../http";
+import { hashPassword } from "../auth";
+import { config } from "../config";
+import { confirmTestPayment } from "./payments";
 
 export function audit(adminId: string, action: string, targetType?: string, targetId?: string, meta: Record<string, unknown> = {}, ip?: string) {
   run("INSERT INTO audit_logs (id, admin_id, action, target_type, target_id, meta_json, ip, created_at) VALUES (?,?,?,?,?,?,?,?)",
@@ -26,8 +29,8 @@ export function stats() {
 }
 
 export function listUsers() {
-  return all<{ id: string; email: string; name: string; role: string; is_active: number; email_verified_at: string | null; created_at: string }>(
-    "SELECT id,email,name,role,is_active,email_verified_at,created_at FROM users ORDER BY created_at DESC LIMIT 200",
+  return all<{ id: string; email: string; name: string; role: string; is_active: number; email_verified_at: string | null; plan_id: string; phone: string | null; created_at: string }>(
+    "SELECT id,email,name,role,is_active,email_verified_at,plan_id,phone,created_at FROM users ORDER BY created_at DESC LIMIT 200",
   );
 }
 
@@ -47,6 +50,74 @@ export function grantCredits(adminId: string, userId: string, amount: number, re
   if (!get("SELECT 1 FROM users WHERE id=?", userId)) throw new ApiError(404, "Utilizador não encontrado.", "not_found");
   run("INSERT INTO credit_ledger (id,user_id,delta,reason,created_at) VALUES (?,?,?,?,?)", uid("led_"), userId, amount, reason, nowIso());
   audit(adminId, "credits.granted", "user", userId, { amount, reason }, ip);
+}
+
+export function assignPlan(adminId: string, userId: string, planId: string, ip?: string) {
+  if (!get("SELECT 1 FROM users WHERE id=?", userId)) throw new ApiError(404, "Utilizador não encontrado.", "not_found");
+  if (!get("SELECT 1 FROM plans WHERE id=?", planId)) throw new ApiError(404, "Plano não encontrado.", "not_found");
+  const now = nowIso();
+  const end = new Date(Date.now() + 30 * 86_400_000).toISOString();
+  run(
+    "UPDATE users SET plan_id=?, plan_status='active', plan_period_start=?, plan_period_end=?, updated_at=? WHERE id=?",
+    planId, now, end, now, userId,
+  );
+  audit(adminId, "user.plan_assigned", "user", userId, { planId }, ip);
+}
+
+export function grantMinutes(adminId: string, userId: string, minutes: number, reason: string, ip?: string) {
+  if (!get("SELECT 1 FROM users WHERE id=?", userId)) throw new ApiError(404, "Utilizador não encontrado.", "not_found");
+  if (!Number.isFinite(minutes) || minutes === 0) throw new ApiError(400, "Minutos inválidos.", "invalid_minutes");
+  run(
+    "INSERT INTO minute_ledger (id,user_id,delta_seconds,reason,reference_id,created_at) VALUES (?,?,?,?,?,?)",
+    uid("min_"), userId, Math.round(minutes * 60), reason || "Ajuste manual do administrador", null, nowIso(),
+  );
+  audit(adminId, "minutes.granted", "user", userId, { minutes, reason }, ip);
+}
+
+export function resetUserPassword(adminId: string, userId: string, password: string, ip?: string) {
+  if (password.length < 8) throw new ApiError(400, "A palavra-passe deve ter pelo menos 8 caracteres.", "weak_password");
+  if (!get("SELECT 1 FROM users WHERE id=?", userId)) throw new ApiError(404, "Utilizador não encontrado.", "not_found");
+  const now = nowIso();
+  run("UPDATE users SET password_hash=?, failed_logins=0, locked_until=NULL, updated_at=? WHERE id=?", hashPassword(password), now, userId);
+  run("UPDATE sessions SET revoked_at=? WHERE user_id=? AND revoked_at IS NULL", now, userId);
+  audit(adminId, "user.password_reset", "user", userId, {}, ip);
+}
+
+export function deleteUser(adminId: string, userId: string, ip?: string) {
+  if (adminId === userId) throw new ApiError(400, "Não pode eliminar a sua própria conta.", "cannot_delete_self");
+  if (!get("SELECT 1 FROM users WHERE id=?", userId)) throw new ApiError(404, "Utilizador não encontrado.", "not_found");
+  run("DELETE FROM users WHERE id=?", userId);
+  audit(adminId, "user.deleted", "user", userId, {}, ip);
+}
+
+export function setJobAction(adminId: string, jobId: string, action: "retry" | "cancel" | "fail", ip?: string) {
+  const job = get<{ id: string; status: string }>("SELECT id,status FROM jobs WHERE id=?", jobId);
+  if (!job) throw new ApiError(404, "Tarefa não encontrada.", "not_found");
+  const now = nowIso();
+  if (action === "retry") {
+    run("UPDATE jobs SET status='queued', run_after=?, attempts=0, error=NULL, locked_at=NULL, locked_by=NULL, updated_at=? WHERE id=?", now, now, jobId);
+  } else if (action === "cancel") {
+    run("UPDATE jobs SET status='cancelled', locked_at=NULL, locked_by=NULL, updated_at=? WHERE id=?", now, jobId);
+  } else {
+    run("UPDATE jobs SET status='failed', error=?, locked_at=NULL, locked_by=NULL, updated_at=? WHERE id=?", "Marcado como falhado pelo administrador", now, jobId);
+  }
+  audit(adminId, `job.${action}`, "job", jobId, { anterior: job.status }, ip);
+}
+
+export function adminConfirmPayment(adminId: string, paymentId: string, ip?: string) {
+  const token = config.payments.testConfirmToken;
+  if (!token) throw new ApiError(503, "Confirmação de teste não configurada.", "test_token_missing");
+  const payment = confirmTestPayment(paymentId, token, `admin:${adminId}`);
+  audit(adminId, "payment.confirmed_test", "payment", paymentId, { amount_cents: payment.amount_cents }, ip);
+  return payment;
+}
+
+export function adminCancelPayment(adminId: string, paymentId: string, ip?: string) {
+  const payment = get<{ id: string; status: string }>("SELECT id,status FROM payments WHERE id=?", paymentId);
+  if (!payment) throw new ApiError(404, "Pagamento não encontrado.", "not_found");
+  if (payment.status === "paid") throw new ApiError(400, "Um pagamento confirmado não pode ser cancelado.", "already_paid");
+  run("UPDATE payments SET status='cancelled', updated_at=? WHERE id=?", nowIso(), paymentId);
+  audit(adminId, "payment.cancelled", "payment", paymentId, { anterior: payment.status }, ip);
 }
 
 export function getSettings(): Record<string, unknown> {
