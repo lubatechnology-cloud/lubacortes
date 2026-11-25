@@ -71,7 +71,7 @@ export function buildFilterChain(opts: RenderOptions): string {
   }
   if (opts.watermark && config.watermarkFont && fs.existsSync(config.watermarkFont)) {
     const font = config.watermarkFont.replace(/\\/g, "/").replace(/:/g, "\\:");
-    filters.push(`drawtext=fontfile='${font}':text='Lubacortes':fontcolor=white@0.42:fontsize=44:x=(w-text_w)/2:y=h-text_h-120`);
+    filters.push(`drawtext=fontfile='${font}':text='Lubacortes':fontcolor=white@0.38:fontsize=38:x=w-text_w-36:y=36`);
   }
   filters.push("setsar=1");
   if (opts.fadeEdges !== false) {

@@ -107,18 +107,21 @@ export async function runRenderJob(job: Job) {
   progress(job.id, 5, "a_preparar_legendas");
 
   const savedStyle = JSON.parse(clip.style_json || "{}") as Record<string, unknown>;
-  const preset = STYLE_PRESETS[String(savedStyle.stylePreset ?? savedStyle.template ?? "opus")] ?? {};
+  const presetId = String(savedStyle.stylePreset ?? savedStyle.template ?? "opus");
+  const preset = STYLE_PRESETS[presetId] ?? {};
   const visuais = new Set(["font", "fontSize", "primaryColor", "highlightColor", "position", "bold", "outline", "karaoke", "animation"]);
+  const limparVisuais = (s: Record<string, unknown>) =>
+    Object.fromEntries(Object.entries(s).filter(([k]) => !visuais.has(k)));
   // Ao voltar a renderizar um corte antigo, actualizamos o acabamento visual.
-  const estiloGuardado = payload.regenerate
-    ? Object.fromEntries(Object.entries(savedStyle).filter(([k]) => !visuais.has(k)))
-    : savedStyle;
+  const estiloGuardado = payload.regenerate ? limparVisuais(savedStyle) : savedStyle;
+  const estiloPedido = payload.style ?? {};
   const style: SubtitleStyle = {
     ...DEFAULT_SUBTITLE_STYLE,
     ...preset,
     ...estiloGuardado,
-    ...(payload.style ?? {}),
+    ...(payload.regenerate ? limparVisuais(estiloPedido) : estiloPedido),
   } as SubtitleStyle;
+  if (payload.regenerate && !STYLE_PRESETS[presetId]) Object.assign(style, STYLE_PRESETS.opus);
   if (!style.hookTitle && String(style.template ?? "opus") !== "minimo") style.hookTitle = clip.title;
   const autofocusMode = ((payload.style as Record<string, unknown> | undefined)?.autofocusMode ??
     savedStyle.autofocusMode ?? "center") as "center" | "model" | "manual";
@@ -230,9 +233,10 @@ export async function runRenderJob(job: Job) {
   if (fs.existsSync(thumbAbs)) await enviarRemoto(remoteThumb, fs.readFileSync(thumbAbs), "image/jpeg");
 
   run(
-    "UPDATE clips SET status='ready', storage_path=?, thumb_path=?, remote_path=?, thumb_remote_path=?, duration=?, style_json=?, updated_at=?, error=NULL WHERE id=?",
+    "UPDATE clips SET status='ready', storage_path=?, thumb_path=?, remote_path=?, thumb_remote_path=?, duration=?, style_json=?, style_preset=?, updated_at=?, error=NULL WHERE id=?",
     outRel, thumbRel, enviouClip ? remoteClip : null, enviouClip ? remoteThumb : null,
-    meta?.duration ?? Number((clip.end_sec - clip.start_sec).toFixed(2)), JSON.stringify(style), nowIso(), clip.id,
+    meta?.duration ?? Number((clip.end_sec - clip.start_sec).toFixed(2)), JSON.stringify(style),
+    STYLE_PRESETS[presetId] ? presetId : "opus", nowIso(), clip.id,
   );
   run("INSERT INTO api_usage (id, user_id, project_id, service, operation, units, created_at) VALUES (?,?,?,?,?,?,?)",
     uid("use_"), job.user_id, clip.project_id, "ffmpeg", "render_clip", 1, nowIso());

@@ -43,7 +43,7 @@ describe("Legendas profissionais", () => {
     expect(ass).toContain("\\kf");
     expect(ass).toContain("&H0000E5FF"); // amarelo em ASS (BGR)
     expect(ass).toContain("Style: Titulo,");
-    expect(ass).toContain("O momento");
+    expect(ass).toContain("O MOMENTO");
     expect(ass).toContain("PlayResY: 1920");
   });
 

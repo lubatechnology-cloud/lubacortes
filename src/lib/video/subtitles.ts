@@ -201,8 +201,8 @@ export function buildAss(
   const eventos: string[] = [];
 
   if (style.hookTitle) {
-    const dur = 1.7;
-    const titulo = escapar(style.hookTitle).slice(0, 90);
+    const dur = 1.5;
+    const titulo = escapar(style.hookTitle).split(" ").filter(Boolean).slice(0, 7).join(" ").toUpperCase().slice(0, 60);
     eventos.push(
       `Dialogue: 1,${timestamp(0)},${timestamp(dur)},Titulo,,0,0,0,,{\\fad(180,260)}${titulo.split(" ").reduce((acc, p, i, arr) => {
         acc.push(p);
