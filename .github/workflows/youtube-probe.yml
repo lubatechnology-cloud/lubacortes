@@ -12,6 +12,8 @@ jobs:
     env:
       npm_config_onnxruntime_node_install_cuda: skip
       npm_config_yes: "true"
+      FFMPEG_STATIC_SKIP_DOWNLOAD: "1"
+      FFPROBE_STATIC_SKIP_DOWNLOAD: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
