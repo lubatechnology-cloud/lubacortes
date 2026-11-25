@@ -58,6 +58,9 @@ export async function descarregarRemoto(caminho: string): Promise<Buffer | null>
   const res = await comRetry(() => fetch(`${c.url}/storage/v1/object/${c.bucket}/${caminho}`, {
     headers: headers(c.key),
   }));
-  if (!res.ok) return null;
+  if (!res.ok) {
+    console.warn(`[storage] falha ao descarregar ${caminho}: HTTP ${res.status} ${(await res.text()).slice(0, 160)}`);
+    return null;
+  }
   return Buffer.from(await res.arrayBuffer());
 }

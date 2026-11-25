@@ -76,7 +76,25 @@ export async function runRenderJob(job: Job) {
     "SELECT id, storage_path, source_url, remote_path FROM projects WHERE id=? AND user_id=?", clip.project_id, job.user_id,
   );
   if (!project?.storage_path) throw new Error("Vídeo de origem não encontrado.");
-  const video = await ensureLocalSource(project);
+  let video: string;
+  try {
+    video = await ensureLocalSource(project);
+  } catch (e) {
+    // O filesystem do worker é efémero. Se o original não estiver no Storage,
+    // voltamos a descarregar do YouTube (a saída WARP já está activa no workflow).
+    if (project.source_url && /youtube\.com|youtu\.be/i.test(project.source_url)) {
+      console.warn("[render] origem ausente; a descarregar novamente do YouTube.");
+      const { baixarYouTube } = await import("../video/youtube-download");
+      const yt = await baixarYouTube(project.source_url, clip.user_id, project.id);
+      run(
+        "UPDATE projects SET storage_path=?, remote_path=?, title=?, duration=?, updated_at=? WHERE id=?",
+        yt.caminhoLocal, yt.caminhoRemoto, yt.titulo, yt.duracao, nowIso(), project.id,
+      );
+      video = storagePath(yt.caminhoLocal);
+    } else {
+      throw e;
+    }
+  }
   const relDir = path.posix.join("projects", clip.user_id, clip.project_id, "clips");
   const outRel = path.posix.join(relDir, `${clip.id}.mp4`);
   const thumbRel = path.posix.join(relDir, `${clip.id}.jpg`);
