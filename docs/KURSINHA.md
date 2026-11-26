@@ -30,12 +30,24 @@ Estão definidas na Vercel, em `keys.txt` e em `.env.local` (nunca versionadas).
 
 ## Produtos e webhook na Kursinha (conta Repair Luba Tec)
 
-- Criado produto **"Lubacortes - Plano CRIADOR"**, 3 500 Kz, pagamento único,
-  entrega por link para `https://lubacortes.vercel.app/faturacao`.
-  - ID/checkout: `6b080e8a214197e42e3391b4`
-  - `https://pay.kursinha.com/c/6b080e8a214197e42e3391b4`
-  - **Estado: em análise** — o link só fica activo depois de a Kursinha aprovar o produto.
-- Webhook **"Lubacortes"**, global, evento **Compra aprovada**, activo, apontando para a URL acima.
+Foram criados **8 produtos** (pagamento único, entrega por link para
+`https://lubacortes.vercel.app/faturacao`) e mapeados em `KURSINHA_PRODUCTS`:
+
+| Chave | Produto | Preço | ID |
+|---|---|---|---|
+| `plan_creator` | Lubacortes - Plano CRIADOR | 3 500 Kz | `6b080e8a214197e42e3391b4` |
+| `plan_pro` | Lubacortes - Plano PROFISSIONAL | 7 500 Kz | `6b0825c24c170ae40430b923` |
+| `plan_agency` | Lubacortes - Plano AGÊNCIA | 17 500 Kz | `6b0827634c170ae40430b929` |
+| `pack_60` | Lubacortes - Pacote 60 minutos | 2 000 Kz | `6b0827e2338f86fd4f6a3a39` |
+| `pack_150` | Lubacortes - Pacote 150 minutos | 4 500 Kz | `6b0827ef9c32e3f67976f5d4` |
+| `pack_300` | Lubacortes - Pacote 300 minutos | 8 000 Kz | `6b08289f338f86fd4f6a3a41` |
+| `pack_600` | Lubacortes - Pacote 600 minutos | 14 000 Kz | `6b0828c232ff5fc9da35a1da` |
+| `credits` | Lubacortes - Créditos de desbloqueio | 1 500 Kz | `6b0828de4c170ae40430b93a` |
+
+Cada checkout é `https://pay.kursinha.com/c/<ID>`.
+
+- Webhook **"Lubacortes"**, global, evento **Compra aprovada**, activo, apontando para
+  `https://lubacortes.vercel.app/api/payments/kursinha-webhook?key=<secret>`.
 
 ## Verificação real
 
@@ -47,9 +59,9 @@ Estão definidas na Vercel, em `keys.txt` e em `.env.local` (nunca versionadas).
 
 ## O que falta na Kursinha (acção sua)
 
-1. **Aprovação do produto** "Lubacortes - Plano CRIADOR" pela equipa da Kursinha.
-2. Criar os restantes produtos (PROFISSIONAL 7 500 Kz, AGÊNCIA 17 500 Kz e pacotes 60/150/300/600 min)
-   e acrescentar os IDs/URLs ao JSON `KURSINHA_PRODUCTS`.
+**Aprovação dos produtos** pela equipa da Kursinha. Na lista `/produtos` da conta,
+o "Plano CRIADOR" já aparece como **Ativo**; os restantes estão **Em análise** e os
+respectivos links de checkout só ficam activos após aprovação.
 
-Enquanto um plano/pacote não estiver mapeado, o botão Kursinha devolve
-`kursinha_product_missing` e os métodos de teste continuam disponíveis.
+Enquanto um produto não estiver aprovado, a compra pode ser criada na Lubacortes mas o
+checkout da Kursinha recusará o pagamento — os métodos de teste continuam disponíveis.

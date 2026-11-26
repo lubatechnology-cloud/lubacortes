@@ -32,7 +32,8 @@ export async function POST(req: Request) {
       description = "Créditos de desbloqueio Lubacortes";
     }
     if (body.method === "kursinha") {
-      const produto = produtosKursinha()[body.referenceId ?? ""];
+      const chaveProduto = body.referenceId ?? (body.kind === "credits" ? "credits" : "");
+      const produto = produtosKursinha()[chaveProduto];
       if (!produto) throw new (await import("@/lib/http")).ApiError(400, "Este plano/pacote ainda não tem checkout Kursinha configurado.", "kursinha_product_missing");
       const payment = createKursinhaPayment(user.id, description, {
         kind: body.kind as "plan" | "minute_pack" | "credits",
