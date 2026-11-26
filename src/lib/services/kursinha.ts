@@ -63,7 +63,9 @@ export function processarEventoKursinha(payload: Payload): Resultado {
 
   const mapa = produtosKursinha();
   const referencia = Object.entries(mapa).find(([, p]) => p.id === productId)?.[0];
-  if (!referencia) return { ok: false, motivo: "produto Kursinha não mapeado" };
+  // Produtos alheios à Lubacortes são reconhecidos e ignorados (200) para não
+  // provar retalhações desnecessárias da Kursinha nem poluir os logs.
+  if (!referencia) return { ok: true, motivo: "produto alheio à Lubacortes — ignorado" };
 
   const usuario = get<{ id: string }>("SELECT id FROM users WHERE email=?", email);
   if (!usuario) return { ok: false, motivo: "comprador sem conta Lubacortes com esse e-mail" };
