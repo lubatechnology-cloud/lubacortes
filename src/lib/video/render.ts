@@ -69,10 +69,6 @@ export function buildFilterChain(opts: RenderOptions): string {
   if (opts.subtitlePath && fs.existsSync(opts.subtitlePath)) {
     filters.push(`subtitles=filename='${escapeFilterPath(opts.subtitlePath)}'`);
   }
-  if (opts.watermark && config.watermarkFont && fs.existsSync(config.watermarkFont)) {
-    const font = config.watermarkFont.replace(/\\/g, "/").replace(/:/g, "\\:");
-    filters.push(`drawtext=fontfile='${font}':text='Lubacortes':fontcolor=white@0.38:fontsize=38:x=w-text_w-36:y=36`);
-  }
   filters.push("setsar=1");
   if (opts.fadeEdges !== false) {
     const dur = Math.max(0.5, opts.end - opts.start);
@@ -87,6 +83,22 @@ export async function renderClip(opts: RenderOptions) {
   fs.mkdirSync(path.dirname(opts.output), { recursive: true });
   const duration = Math.max(0.5, opts.end - opts.start);
   const filter = buildFilterChain(opts);
+  const logo = path.join(config.root, "public", "logo-watermark.png");
+  const comLogo = Boolean(opts.watermark && fs.existsSync(logo));
+  let grafico: string[];
+  let mapas: string[];
+  if (comLogo) {
+    const arquivo = escapeFilterPath(logo);
+    const cadeia =
+      `[0:v]${filter}[base];` +
+      `movie='${arquivo}',scale=112:-2,format=rgba,colorchannelmixer=aa=0.58[marca];` +
+      `[base][marca]overlay=x=W-w-30:y=30:format=auto[out]`;
+    grafico = ["-filter_complex", cadeia];
+    mapas = ["-map", "[out]", "-map", "0:a?"];
+  } else {
+    grafico = ["-vf", filter];
+    mapas = [];
+  }
   const audio: string[] = [];
   if (opts.removeSilences) {
     audio.push(`silenceremove=start_periods=1:start_duration=0.2:start_threshold=${opts.silencioDb ?? -35}dB:stop_periods=-1:stop_duration=0.3:stop_threshold=${opts.silencioDb ?? -35}dB`);
@@ -99,7 +111,8 @@ export async function renderClip(opts: RenderOptions) {
       "-ss", opts.start.toFixed(3),
       "-i", opts.input,
       "-t", duration.toFixed(3),
-      "-vf", filter,
+      ...grafico,
+      ...mapas,
       ...(audio.length ? ["-af", audio.join(",")] : []),
       "-c:v", "libx264",
       "-preset", "fast",
