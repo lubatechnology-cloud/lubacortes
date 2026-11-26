@@ -1,14 +1,19 @@
 import { requireUser } from "@/lib/auth";
 import { fail, ok } from "@/lib/http";
 import { availableMethods } from "@/lib/services/payments";
+import { produtosKursinha } from "@/lib/services/kursinha";
 import { setting } from "@/lib/db";
 
 export async function GET() {
   try {
     await requireUser();
+    const produtos = produtosKursinha();
+    const kursinha = Object.keys(produtos).length
+      ? [{ id: "kursinha", label: "Kursinha (Multicaixa / Referência / Transferência)" }]
+      : [];
     return ok({
-      methods: availableMethods(),
-      mode: "test",
+      methods: [...availableMethods(), ...kursinha],
+      mode: "mixed",
       prices: {
         reference: setting("pricing.reference_price_cents", 1500),
         express: setting("pricing.express_price_cents", 1500),

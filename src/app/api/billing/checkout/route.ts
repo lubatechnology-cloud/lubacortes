@@ -2,10 +2,11 @@ import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { fail, ok, readJson } from "@/lib/http";
 import { getPlan, listPackages } from "@/lib/billing";
-import { createPayment } from "@/lib/services/payments";
+import { createKursinhaPayment, createPayment } from "@/lib/services/payments";
+import { produtosKursinha } from "@/lib/services/kursinha";
 
 const schema = z.object({
-  method: z.enum(["reference", "express", "transfer"]),
+  method: z.enum(["reference", "express", "transfer", "kursinha"]),
   kind: z.enum(["plan", "minute_pack", "credits"]),
   referenceId: z.string().optional(),
   months: z.number().int().min(1).max(12).optional(),
@@ -29,6 +30,19 @@ export async function POST(req: Request) {
       description = `Pacote ${pack.name}`;
     } else {
       description = "Créditos de desbloqueio Lubacortes";
+    }
+    if (body.method === "kursinha") {
+      const produto = produtosKursinha()[body.referenceId ?? ""];
+      if (!produto) throw new (await import("@/lib/http")).ApiError(400, "Este plano/pacote ainda não tem checkout Kursinha configurado.", "kursinha_product_missing");
+      const payment = createKursinhaPayment(user.id, description, {
+        kind: body.kind as "plan" | "minute_pack" | "credits",
+        referenceId: body.referenceId,
+        amountCents: amountCents ?? 0,
+        months: body.months,
+        checkoutUrl: produto.url,
+        checkoutId: produto.id,
+      });
+      return ok({ payment, checkoutUrl: produto.url, notice: "Vais ser encaminhado para o checkout seguro da Kursinha." }, 201);
     }
     const payment = createPayment(user.id, body.method, description, {
       kind: body.kind,

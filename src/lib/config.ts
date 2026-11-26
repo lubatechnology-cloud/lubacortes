@@ -82,6 +82,11 @@ export const config = {
     clientSecret: str("GOOGLE_CLIENT_SECRET"),
     redirectUri: str("GOOGLE_REDIRECT_URI"),
   },
+  kursinha: {
+    webhookSecret: str("KURSINHA_WEBHOOK_SECRET"),
+    // JSON: { "plan_creator": { "id": "...", "url": "..." }, "pack_60": { ... } }
+    products: str("KURSINHA_PRODUCTS", "{}"),
+  },
 };
 
 export const DEFAULT_SETTINGS: Record<string, unknown> = {

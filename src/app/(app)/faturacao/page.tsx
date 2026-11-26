@@ -29,7 +29,7 @@ export default function BillingPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [credits, setCredits] = useState(0);
   const [selection, setSelection] = useState<Selection>({ kind: "credits", label: "Créditos de desbloqueio" });
-  const [method, setMethod] = useState<"reference" | "express" | "transfer">("reference");
+  const [method, setMethod] = useState<"reference" | "express" | "transfer" | "kursinha">("reference");
   const [token, setToken] = useState("");
   const [pending, setPending] = useState<Payment | null>(null);
   const [busy, setBusy] = useState(false);
@@ -50,10 +50,15 @@ export default function BillingPage() {
   async function checkout() {
     setBusy(true); setError(""); setMsg("");
     try {
-      const r = await post<{ payment: Payment }>("/api/billing/checkout", {
+      const r = await post<{ payment: Payment; checkoutUrl?: string }>("/api/billing/checkout", {
         method, kind: selection.kind, referenceId: selection.referenceId,
       });
       setPending(r.payment);
+      if (r.checkoutUrl) {
+        setMsg("A abrir o checkout seguro da Kursinha. O desbloqueio acontece após confirmação do pagamento.");
+        window.location.href = r.checkoutUrl;
+        return;
+      }
       setMsg("Pagamento de teste criado. Introduza o token de teste para simular a confirmação.");
       await load();
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
@@ -100,7 +105,7 @@ export default function BillingPage() {
         <h2 className="mb-3 text-lg font-bold">Planos mensais</h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {overview.plans.map((p) => (
-            <button key={p.id} onClick={() => setSelection({ kind: "plan", referenceId: p.id, label: `Plano ${p.name}` })}
+            <button key={p.id} onClick={() => setSelection({ kind: "plan", referenceId: p.id, label: `Plano ${p.name}`, amountCents: p.price_cents })}
               className={`card p-5 text-left transition ${selection.kind === "plan" && selection.referenceId === p.id ? "border-blue-500 ring-2 ring-blue-500/30" : "card-hover"}`}>
               <p className="badge bg-blue-500/10 text-blue-500">{p.name}</p>
               <p className="mt-3 text-2xl font-extrabold">{formatKz(p.price_cents)}<span className="text-xs font-normal muted">/mês</span></p>
@@ -120,7 +125,7 @@ export default function BillingPage() {
         <h2 className="mb-3 flex items-center gap-2 text-lg font-bold"><Clock size={18} /> Pacotes adicionais de minutos</h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {overview.packages.map((p) => (
-            <button key={p.id} onClick={() => setSelection({ kind: "minute_pack", referenceId: p.id, label: `Pacote ${p.name}` })}
+            <button key={p.id} onClick={() => setSelection({ kind: "minute_pack", referenceId: p.id, label: `Pacote ${p.name}`, amountCents: p.price_cents })}
               className={`card p-5 text-left transition ${selection.kind === "minute_pack" && selection.referenceId === p.id ? "border-cyan-500 ring-2 ring-cyan-500/30" : "card-hover"}`}>
               <p className="font-bold">{p.name}</p>
               <p className="mt-2 text-xl font-extrabold text-cyan-500">{formatKz(p.price_cents)}</p>
@@ -150,7 +155,7 @@ export default function BillingPage() {
                 className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left text-xs transition ${method === m.id ? "border-blue-500 bg-blue-500/10" : ""}`}
                 style={{ borderColor: method === m.id ? undefined : "var(--border)" }}>
                 <span>{m.label}</span>
-                <span className="font-bold">{formatKz(m.id === "reference" ? methods.prices.reference : m.id === "express" ? methods.prices.express : methods.prices.transfer)}</span>
+                <span className="font-bold">{m.id === "kursinha" ? (selection.amountCents ? formatKz(selection.amountCents) : "Kz") : formatKz(m.id === "reference" ? methods.prices.reference : m.id === "express" ? methods.prices.express : methods.prices.transfer)}</span>
               </button>
             ))}
           </div>
@@ -162,7 +167,9 @@ export default function BillingPage() {
               <p className="font-mono">Nome: {methods.transfer.accountName}</p>
             </div>
           )}
-          <button className="btn-primary mt-5 w-full" onClick={checkout} disabled={busy}>{busy ? <Spinner /> : "Criar pagamento de teste"}</button>
+          <button className="btn-primary mt-5 w-full" onClick={checkout} disabled={busy}>
+            {busy ? <Spinner /> : method === "kursinha" ? "Pagar com Kursinha" : "Criar pagamento de teste"}
+          </button>
         </div>
 
         <div className="card p-6">
@@ -173,9 +180,15 @@ export default function BillingPage() {
                 <p>Transacção: <code className="text-cyan-500">{pending.provider_ref}</code></p>
                 <p>Valor: {formatKz(pending.amount_cents)} · <StatusBadge status={pending.status} /></p>
               </div>
-              <label className="label">Token de confirmação de teste</label>
-              <input className="input" type="password" value={token} onChange={(e) => setToken(e.target.value)} placeholder="PAYMENT_TEST_CONFIRM_TOKEN" />
-              <button className="btn-primary w-full" onClick={confirm} disabled={busy || !token}><CheckCircle2 size={16} /> Confirmar simulação</button>
+              {method === "kursinha" ? (
+                <p className="text-xs muted">A aguardar confirmação da Kursinha. Assim que o pagamento for aprovado, o seu saldo/plano é actualizado automaticamente.</p>
+              ) : (
+                <>
+                  <label className="label">Token de confirmação de teste</label>
+                  <input className="input" type="password" value={token} onChange={(e) => setToken(e.target.value)} placeholder="PAYMENT_TEST_CONFIRM_TOKEN" />
+                  <button className="btn-primary w-full" onClick={confirm} disabled={busy || !token}><CheckCircle2 size={16} /> Confirmar simulação</button>
+                </>
+              )}
             </div>
           ) : <p className="text-sm muted">Crie um pagamento para ver a referência simulada e confirmar com o token de teste.</p>}
         </div>

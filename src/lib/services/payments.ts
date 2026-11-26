@@ -164,12 +164,27 @@ export function confirmTestPayment(paymentId: string, token: string, actor = "te
   const payment = get<Payment>("SELECT * FROM payments WHERE id=?", paymentId);
   if (!payment) throw new ApiError(404, "Pagamento não encontrado.", "not_found");
   if (payment.mode !== "test") throw new ApiError(400, "A confirmação simulada só é válida em modo de teste.", "not_test_mode");
-  if (payment.status === "paid") return payment;
+  return aplicarConfirmacao(payment, actor, true);
+}
 
+/** Confirmação real recebida de um webhook de pagamento (ex.: Kursinha). */
+export function confirmExternalPayment(paymentId: string, actor: string, saleId: string) {
+  const payment = get<Payment>("SELECT * FROM payments WHERE id=?", paymentId);
+  if (!payment) throw new ApiError(404, "Pagamento não encontrado.", "not_found");
+  if (payment.mode !== "live") throw new ApiError(400, "Pagamento não é de cobrança real.", "not_live_mode");
+  if (payment.status === "paid") return payment;
+  const atualizado = aplicarConfirmacao(payment, actor, false);
+  run("UPDATE payments SET provider_ref=?, updated_at=? WHERE id=?", saleId, nowIso(), payment.id);
+  event(payment.id, "payment.paid.external", { saleId, actor }, "webhook");
+  return atualizado;
+}
+
+function aplicarConfirmacao(payment: Payment, actor: string, simulado: boolean) {
+  if (payment.status === "paid") return payment;
   const tx = getDb().transaction(() => {
     run("UPDATE payments SET status='paid', confirmed_at=?, confirmed_by=?, updated_at=? WHERE id=?",
       nowIso(), actor, nowIso(), payment.id);
-    addCredits(payment.user_id, payment.credits, "Pagamento de teste confirmado", payment.id);
+    addCredits(payment.user_id, payment.credits, simulado ? "Pagamento de teste confirmado" : "Pagamento confirmado", payment.id);
     if (payment.kind === "plan" && payment.reference_id) {
       activatePlan(payment.user_id, payment.reference_id, payment.id, payment.period_months || 1);
     }
@@ -178,10 +193,30 @@ export function confirmTestPayment(paymentId: string, token: string, actor = "te
     }
     run("INSERT INTO transactions (id, payment_id, user_id, kind, amount_cents, currency, status, external_ref, created_at) VALUES (?,?,?,?,?,?,'paid',?,?)",
       uid("txn_"), payment.id, payment.user_id, "charge", payment.amount_cents, payment.currency, payment.provider_ref, nowIso());
-    event(payment.id, "payment.paid", { simulated: true, actor }, "test-console");
+    event(payment.id, "payment.paid", { simulated: simulado, actor }, simulado ? "test-console" : "webhook");
   });
   tx();
   return get<Payment>("SELECT * FROM payments WHERE id=?", payment.id)!;
+}
+
+/** Cria um pagamento ligado a um checkout alojado da Kursinha (cobrança real). */
+export function createKursinhaPayment(
+  userId: string,
+  description: string,
+  options: { kind: Payment["kind"]; referenceId?: string; amountCents: number; months?: number; checkoutUrl: string; checkoutId: string },
+) {
+  const id = uid("pay_");
+  const now = nowIso();
+  const providerRef = `KUR-${crypto.randomBytes(8).toString("hex").toUpperCase()}`;
+  run(
+    "INSERT INTO payments (id,user_id,method,amount_cents,currency,status,provider_ref,idempotency_key,credits,description,mode,kind,reference_id,period_months,meta_json,created_at,updated_at) VALUES (?,?,'reference',?,?,'pending',?,?,?,?,'live',?,?,?,?,?,?)",
+    id, userId, options.amountCents, setting("pricing.currency", "AOA"), providerRef,
+    `kur_${crypto.randomBytes(12).toString("hex")}`, setting("pricing.credits_per_purchase", 3), description,
+    options.kind, options.referenceId ?? null, options.months ?? 1,
+    JSON.stringify({ adapter: "kursinha", checkoutId: options.checkoutId, checkoutUrl: options.checkoutUrl, kind: options.kind }), now, now,
+  );
+  event(id, "payment.created", { method: "kursinha", amount: options.amountCents, mode: "live" }, "adapter");
+  return getPayment(userId, id)!;
 }
 
 /** Webhook preparado para integração futura. Em teste exige assinatura E token de confirmação. */
