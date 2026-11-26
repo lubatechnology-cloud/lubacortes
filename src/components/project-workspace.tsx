@@ -6,9 +6,10 @@ import { api, post } from "@/lib/client/api";
 import { Alert, Progress, Spinner, StatusBadge } from "@/components/ui";
 import { SUBTITLE_LANGUAGES } from "@/lib/ai/languages-client";
 import { VIDEO_FORMATS } from "@/lib/video/formats-client";
-import { Wand2, Download, Lock, Unlock, Clock, Sparkles, RefreshCw, Loader2, Pencil, Focus } from "lucide-react";
+import { Wand2, Download, Lock, Unlock, Clock, Sparkles, RefreshCw, Loader2, Pencil, Focus, Play, PackageOpen } from "lucide-react";
 import { ClipEditor } from "@/components/clip-editor";
 import { AiEditor } from "@/components/ai-editor";
+import { ClipPlayer } from "@/components/clip-player";
 
 export type Project = { id: string; title: string; status: string; duration: number | null; width: number | null; height: number | null; detected_language: string | null; error: string | null; source_type: string };
 export type Moment = { id: string; start_sec: number; end_sec: number; title: string; description: string; reason: string; score: number; category: string; emocao?: string; intensidade?: number };
@@ -52,6 +53,9 @@ export function ProjectWorkspace({ initial }: { initial: Detail }) {
   const [freeUsed, setFreeUsed] = useState(false);
   const [features, setFeatures] = useState<PlanFeatures | null>(null);
   const [modo, setModo] = useState<"escolher" | "auto" | "editar">("escolher");
+  const [playerIndex, setPlayerIndex] = useState<number | null>(null);
+  const [selecionados, setSelecionados] = useState<string[]>([]);
+  const [aDescarregar, setADescarregar] = useState(false);
 
   const load = useCallback(async () => {
     const [d, a] = await Promise.all([
@@ -96,7 +100,7 @@ export function ProjectWorkspace({ initial }: { initial: Detail }) {
         autofocusMode,
         manualFocus: autofocusMode === "manual" ? manualFocus : undefined,
         groupFocus,
-        stylePreset: "padrao",
+        stylePreset: "opus",
       });
       setMsg("Análise iniciada. A IA está a transcrever e a identificar os melhores momentos…");
       await load();
@@ -110,6 +114,30 @@ export function ProjectWorkspace({ initial }: { initial: Detail }) {
       setMsg(mode === "free" ? "Corte gratuito desbloqueado!" : "Corte desbloqueado com 1 crédito.");
       await load();
     } catch (e) { setError((e as Error).message); }
+  }
+
+  async function descarregarSelecionados() {
+    if (!selecionados.length) return;
+    setError(""); setMsg(""); setADescarregar(true);
+    try {
+      const res = await fetch("/api/clips/download-selected", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ ids: selecionados }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error?.message ?? "Não foi possível preparar o download.");
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "lubacortes-cortes.zip"; a.click();
+      URL.revokeObjectURL(url);
+      setMsg(`${selecionados.length} corte(s) descarregados num ficheiro ZIP.`);
+    } catch (e) { setError((e as Error).message); }
+    finally { setADescarregar(false); }
   }
 
   const p = data.project;
@@ -131,7 +159,12 @@ export function ProjectWorkspace({ initial }: { initial: Detail }) {
             {p.detected_language ? ` · idioma: ${p.detected_language}` : ""}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {data.clips.length > 0 && (
+            <button className="btn-ghost !text-xs" onClick={() => { setModo("auto"); setMaxClips(Math.min(12, data.clips.length + 4)); }}>
+              <Wand2 size={14} /> Gerar mais cortes
+            </button>
+          )}
           {data.clips.length > 0 && (
             <button className="btn-ghost !text-xs" onClick={() => setModo(modo === "editar" ? "escolher" : "editar")}>
               <Sparkles size={14} /> {modo === "editar" ? "Ver resultados" : "Editar com IA"}
@@ -283,10 +316,18 @@ export function ProjectWorkspace({ initial }: { initial: Detail }) {
 
       {data.clips.length > 0 && (
         <div>
-          <div className="mb-3 flex items-center justify-between">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-lg font-bold">Cortes gerados <span className="text-sm muted">({data.clips.length})</span></h2>
-            <span className="text-xs muted">Créditos: <strong className="text-blue-500">{credits}</strong> · Corte gratuito: {freeUsed ? "usado" : "disponível"}</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs muted">Créditos: <strong className="text-blue-500">{credits}</strong> · Corte gratuito: {freeUsed ? "usado" : "disponível"}</span>
+              {selecionados.length > 0 && (
+                <button className="btn-primary !px-3 !py-1.5 !text-xs" onClick={descarregarSelecionados} disabled={aDescarregar}>
+                  {aDescarregar ? <Spinner /> : <PackageOpen size={13} />} Descarregar {selecionados.length} selecionado(s)
+                </button>
+              )}
+            </div>
           </div>
+          <p className="mb-3 text-xs muted">Clique na miniatura para reproduzir qualquer corte aqui na plataforma. Escolha os cortes que quer desbloquear e descarregar.</p>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {data.clips.map((c) => {
               const unlocked = Boolean(c.is_unlocked);
@@ -296,12 +337,27 @@ export function ProjectWorkspace({ initial }: { initial: Detail }) {
                 <div key={c.id} className="card overflow-hidden">
                   <div className="relative aspect-[9/16] max-h-72 bg-slate-900">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={`/api/clips/${c.id}/thumbnail`} alt="" className={`h-full w-full object-cover ${unlocked ? "" : "blur-xl scale-110"}`} />
-                    {!unlocked && <div className="absolute inset-0 grid place-items-center bg-black/35"><span className="badge bg-black/70 text-white"><Lock size={12} /> BLOQUEADO</span></div>}
-                    {unlocked && <span className="absolute left-2 top-2 badge bg-emerald-500/90 text-white"><Unlock size={12} /> {c.unlock_kind === "free" ? "GRÁTIS" : "DESBLOQUEADO"}</span>}
+                    <img src={`/api/clips/${c.id}/thumbnail`} alt="" className={`h-full w-full object-cover ${unlocked ? "" : "blur-sm scale-105"}`} />
+                    {ready && (
+                      <button className="absolute inset-0 grid place-items-center bg-black/25 transition hover:bg-black/10" onClick={() => setPlayerIndex(data.clips.findIndex((x) => x.id === c.id))} aria-label={`Reproduzir ${c.title}`}>
+                        <span className="grid h-14 w-14 place-items-center rounded-full bg-white/90 text-slate-900 shadow-lg"><Play size={22} fill="currentColor" /></span>
+                      </button>
+                    )}
+                    {!unlocked && <span className="pointer-events-none absolute bottom-2 left-2 badge bg-black/70 text-white"><Lock size={12} /> PRÉ-VISUALIZAÇÃO</span>}
+                    {unlocked && <span className="pointer-events-none absolute left-2 top-2 badge bg-emerald-500/90 text-white"><Unlock size={12} /> {c.unlock_kind === "free" ? "GRÁTIS" : "DESBLOQUEADO"}</span>}
                     {!ready && <div className="absolute inset-0 grid place-items-center bg-black/60"><div className="text-center text-white"><Spinner size={22} /><p className="mt-2 text-xs">A renderizar… {job?.progress ?? 0}%</p></div></div>}
                   </div>
                   <div className="p-4">
+                    {ready && (
+                      <label className="mb-3 flex items-center gap-2 text-xs">
+                        <input
+                          type="checkbox" className="accent-blue-500"
+                          checked={selecionados.includes(c.id)}
+                          onChange={(e) => setSelecionados((s) => e.target.checked ? [...s, c.id] : s.filter((x) => x !== c.id))}
+                        />
+                        Selecionar para descarregar
+                      </label>
+                    )}
                     <h3 className="line-clamp-2 text-sm font-bold">{c.title}</h3>
                     <div className="mt-2 flex flex-wrap gap-2 text-[11px] muted">
                       <span className="flex items-center gap-1"><Clock size={12} /> {Math.round(c.duration)}s</span>
@@ -317,6 +373,7 @@ export function ProjectWorkspace({ initial }: { initial: Detail }) {
                       {ready && !unlocked && (
                         <button onClick={() => unlock(c.id, "credit")} disabled={credits < 1} className="btn-ghost w-full !py-2 !text-xs"><Unlock size={14} /> Desbloquear com 1 crédito</button>
                       )}
+                      {ready && <button onClick={() => setPlayerIndex(data.clips.findIndex((x) => x.id === c.id))} className="btn-ghost w-full !py-2 !text-xs"><Play size={14} /> Reproduzir aqui</button>}
                       <button onClick={() => setEditingClip(c.id)} className="btn-ghost w-full !py-2 !text-xs"><Pencil size={14} /> Editar legendas / enquadramento</button>
                       {!ready && job?.status === "failed" && <p className="text-xs text-rose-400">{job.error}</p>}
                     </div>
@@ -334,6 +391,18 @@ export function ProjectWorkspace({ initial }: { initial: Detail }) {
           clipId={editingClip}
           onClose={() => setEditingClip(null)}
           onSaved={() => load().catch(() => {})}
+        />
+      )}
+
+      {playerIndex !== null && data.clips[playerIndex] && (
+        <ClipPlayer
+          clips={data.clips.filter((c) => c.status === "ready").map((c) => ({ id: c.id, title: c.title, duration: c.duration, is_unlocked: c.is_unlocked }))}
+          index={data.clips.filter((c) => c.status === "ready").findIndex((c) => c.id === data.clips[playerIndex].id)}
+          onIndex={(i) => {
+            const prontos = data.clips.filter((c) => c.status === "ready");
+            setPlayerIndex(data.clips.findIndex((c) => c.id === prontos[i].id));
+          }}
+          onClose={() => setPlayerIndex(null)}
         />
       )}
     </div>
