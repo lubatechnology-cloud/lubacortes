@@ -85,8 +85,9 @@ export default function BillingPage() {
         <p className="text-sm muted">Todos os valores em Kz. Renovação mensal sem cobrança automática.</p>
       </div>
       <Alert>
-        <strong>AMBIENTE DE TESTE.</strong> Nenhuma cobrança real é efectuada e nenhuma funcionalidade é activada por clique num botão:
-        a confirmação exige o token secreto definido no servidor (<code>PAYMENT_TEST_CONFIRM_TOKEN</code>).
+        <strong>Pagamentos:</strong> os métodos Referência/Express/Transferência são <strong>simulações</strong> (sem dinheiro real) e exigem o token
+        <code> PAYMENT_TEST_CONFIRM_TOKEN</code>. O método <strong>Kursinha</strong> efectua cobrança real em Kz; o desbloqueio só acontece
+        quando a Kursinha confirmar o pagamento ao nosso webhook.
       </Alert>
       {error && <Alert tone="error">{error}</Alert>}
       {msg && <Alert tone="success">{msg}</Alert>}

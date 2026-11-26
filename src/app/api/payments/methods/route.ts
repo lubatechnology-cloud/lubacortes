@@ -26,7 +26,7 @@ export async function GET() {
         accountName: setting("payments.transfer_account_name", "Fausto Silva"),
       },
       creditsPerPurchase: setting("pricing.credits_per_purchase", 3),
-      notice: "AMBIENTE DE TESTE — nenhuma cobrança real é efectuada.",
+      notice: "Referência/Express/Transferência são simulações; Kursinha efectua cobrança real em Kz.",
     });
   } catch (e) {
     return fail(e);
