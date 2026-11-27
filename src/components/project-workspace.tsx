@@ -11,13 +11,13 @@ import { ClipEditor } from "@/components/clip-editor";
 import { AiEditor } from "@/components/ai-editor";
 import { ClipPlayer } from "@/components/clip-player";
 
-export type Project = { id: string; title: string; status: string; duration: number | null; width: number | null; height: number | null; detected_language: string | null; error: string | null; source_type: string };
+export type Project = { id: string; title: string; status: string; duration: number | null; width: number | null; height: number | null; detected_language: string | null; error: string | null; source_type: string; created_at?: string; updated_at?: string };
 export type Moment = { id: string; start_sec: number; end_sec: number; title: string; description: string; reason: string; score: number; category: string; emocao?: string; intensidade?: number };
 export type Clip = {
   id: string; title: string; description: string; start_sec: number; end_sec: number; duration: number;
   format: string; subtitle_lang: string; status: string; is_unlocked: number; unlock_kind: string | null; storage_path: string | null;
 };
-export type Job = { id: string; type: string; status: string; progress: number; stage: string | null; error: string | null; payload?: Record<string, unknown> };
+export type Job = { id: string; type: string; status: string; progress: number; stage: string | null; error: string | null; created_at?: string; updated_at?: string; payload?: Record<string, unknown> };
 export type Detail = { project: Project; moments: Moment[]; clips: Clip[]; jobs: Job[] };
 export type PlanFeatures = {
   plan: { id: string; name: string };
@@ -56,6 +56,7 @@ export function ProjectWorkspace({ initial }: { initial: Detail }) {
   const [playerIndex, setPlayerIndex] = useState<number | null>(null);
   const [selecionados, setSelecionados] = useState<string[]>([]);
   const [aDescarregar, setADescarregar] = useState(false);
+  const [agora, setAgora] = useState(Date.now());
 
   const load = useCallback(async () => {
     const [d, a] = await Promise.all([
@@ -71,6 +72,20 @@ export function ProjectWorkspace({ initial }: { initial: Detail }) {
     data.clips.some((c) => c.status === "queued" || c.status === "rendering");
   const [liveProgress, setLiveProgress] = useState<number | null>(null);
   const jobAtivo = data.jobs.find((j) => ["queued", "running"].includes(j.status));
+
+  // Temporizador: mostra ao utilizador quanto tempo já passou e quanto falta.
+  useEffect(() => {
+    if (!jobAtivo) return;
+    setAgora(Date.now());
+    const t = setInterval(() => setAgora(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [jobAtivo?.id]);
+  const inicioJob = jobAtivo?.created_at ? new Date(jobAtivo.created_at).getTime() : agora;
+  const decorrido = jobAtivo ? Math.max(0, Math.floor((agora - inicioJob) / 1000)) : 0;
+  const progressoAtual = liveProgress ?? jobAtivo?.progress ?? 0;
+  const restante = jobAtivo && progressoAtual > 2
+    ? Math.max(0, Math.round((decorrido * (100 - progressoAtual)) / progressoAtual))
+    : null;
 
   useEffect(() => {
     if (!jobAtivo) return;
@@ -141,6 +156,9 @@ export function ProjectWorkspace({ initial }: { initial: Detail }) {
   }
 
   const p = data.project;
+  const tempoTotal = p.created_at && p.updated_at
+    ? Math.max(0, Math.round((new Date(p.updated_at).getTime() - new Date(p.created_at).getTime()) / 1000))
+    : null;
   const analyzeJob = data.jobs.find((j) => j.type === "analyze");
   const stageMap: Record<string, string> = {
     a_ler_metadados: "A ler metadados do vídeo", a_detectar_cenas: "A detectar mudanças de cena",
@@ -278,9 +296,14 @@ export function ProjectWorkspace({ initial }: { initial: Detail }) {
             <div><h2 className="font-bold">A processar o seu vídeo</h2>
               <p className="text-xs muted">{stageMap[analyzeJob?.stage ?? ""] ?? (data.clips.some((c) => c.status === "rendering") ? "A renderizar cortes" : "A preparar a análise")}</p>
             </div>
-            <span className="ml-auto text-sm font-bold text-blue-500">{liveProgress ?? analyzeJob?.progress ?? 0}%</span>
+            <div className="ml-auto text-right">
+              <p className="text-sm font-bold text-blue-500">{progressoAtual}%</p>
+              <p className="font-mono text-[11px] muted" aria-live="polite">
+                ⏱ {fmt(decorrido)} decorrido{restante !== null ? ` · ~${fmt(restante)} restante` : " · a calcular…"}
+              </p>
+            </div>
           </div>
-          <Progress value={liveProgress ?? analyzeJob?.progress ?? 0} />
+          <Progress value={progressoAtual} />
           <div className="mt-4 grid gap-2 text-[11px] muted sm:grid-cols-5">
             {["Análise", "Transcrição", "Detecção de momentos", "Tradução", "Renderização"].map((s, i) => (
               <div key={s} className={`rounded-lg border px-2 py-2 text-center ${(liveProgress ?? analyzeJob?.progress ?? 0) > i * 20 ? "border-blue-500/40 text-blue-500" : ""}`} style={{ borderColor: "var(--border)" }}>{s}</div>
@@ -293,8 +316,11 @@ export function ProjectWorkspace({ initial }: { initial: Detail }) {
 
       {data.moments.length > 0 && (
         <div className="card p-6">
-          <h2 className="mb-1 text-lg font-bold">Momentos identificados pela IA</h2>
-          <p className="mb-4 text-xs muted">Cada corte respeita as fronteiras das frases e inclui o motivo da selecção.</p>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <div><h2 className="text-lg font-bold">Momentos identificados pela IA</h2>
+              <p className="mt-1 text-xs muted">Cada corte respeita as fronteiras das frases e inclui o motivo da selecção.</p></div>
+            {tempoTotal !== null && <span className="badge bg-blue-500/10 text-blue-500">⏱ Processado em {fmt(tempoTotal)}</span>}
+          </div>
           <div className="space-y-2">
             {data.moments.map((m) => (
               <div key={m.id} className="rounded-xl border p-4" style={{ borderColor: "var(--border)" }}>
